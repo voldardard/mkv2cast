@@ -1,0 +1,448 @@
+.\" mkv2cast - Smart MKV to Chromecast-compatible converter
+.\" Manual page for mkv2cast
+.\"
+.\" Copyright (C) 2024-2026 voldardard
+.\" License: GPL-3.0
+.\"
+.TH MKV2CAST 1 "January 2026" "mkv2cast 1.0.0" "User Commands"
+.\"
+.\" ==================== NAME ====================
+.SH NAME
+mkv2cast \- Smart MKV to Chromecast-compatible converter with hardware acceleration
+.\"
+.\" ==================== SYNOPSIS ====================
+.SH SYNOPSIS
+.B mkv2cast
+[\fIOPTIONS\fR] [\fIFILE\fR]
+.\"
+.\" ==================== DESCRIPTION ====================
+.SH DESCRIPTION
+.B mkv2cast
+is a smart video converter that transforms MKV files into formats compatible
+with Chromecast devices and Smart TVs. It intelligently detects which video
+and audio streams need transcoding and uses hardware acceleration (VAAPI, QSV)
+when available for faster encoding.
+.PP
+The tool features:
+.IP \(bu 2
+Automatic detection of compatible codecs (H.264, AAC)
+.IP \(bu 2
+Hardware acceleration via Intel VAAPI or Quick Sync Video (QSV)
+.IP \(bu 2
+Parallel processing with configurable workers
+.IP \(bu 2
+Recursive directory scanning
+.IP \(bu 2
+Rich progress display with ETA
+.IP \(bu 2
+Integrity checking of source files
+.IP \(bu 2
+Conversion history and statistics
+.PP
+When run without arguments, mkv2cast scans the current directory (recursively
+by default) for MKV files and converts those that need transcoding.
+.\"
+.\" ==================== OPTIONS ====================
+.SH OPTIONS
+.\"
+.SS "General Options"
+.TP
+.BR \-V ", " \-\-version
+Display version information, author, and license, then exit.
+.TP
+.BR \-h ", " \-\-help
+Display help message and exit.
+.TP
+.BR \fIFILE\fR
+Optional MKV file to process. If not specified, scans the current directory.
+.\"
+.SS "Output Settings"
+.TP
+.BI \-\-suffix " SUFFIX"
+Output file suffix. Default: \fB.cast\fR
+.br
+Example: movie.mkv becomes movie.h264.aac.cast.mkv
+.TP
+.BI \-\-container " FORMAT"
+Output container format. Choices: \fBmkv\fR, \fBmp4\fR. Default: \fBmkv\fR
+.\"
+.SS "Scan Settings"
+.TP
+.BR \-r ", " \-\-recursive
+Scan directories recursively. This is the default behavior.
+.TP
+.B \-\-no\-recursive
+Disable recursive scanning; only process files in the current directory.
+.TP
+.BI \-I " PATTERN" "\fR, " \-\-ignore\-pattern " PATTERN"
+Ignore files matching the glob pattern. Can be used multiple times.
+.br
+Examples: \fB\-I '*sample*'\fR, \fB\-I '*.eng.*'\fR
+.TP
+.BI \-\-ignore\-path " PATH"
+Ignore files in specific paths or folders. Can be used multiple times.
+.br
+Examples: \fB\-\-ignore\-path Downloads/temp\fR, \fB\-\-ignore\-path SomeFolder\fR
+.TP
+.BI \-i " PATTERN" "\fR, " \-\-include\-pattern " PATTERN"
+Only process files matching the glob pattern. Can be used multiple times.
+.br
+Examples: \fB\-i '*2024*'\fR, \fB\-i '*.French.*'\fR
+.TP
+.BI \-\-include\-path " PATH"
+Only process files in matching paths. Can be used multiple times.
+.br
+Examples: \fB\-\-include\-path Movies\fR, \fB\-\-include\-path /data/films\fR
+.\"
+.SS "Debug/Test Options"
+.TP
+.BR \-d ", " \-\-debug
+Enable debug output showing detailed processing information.
+.TP
+.BR \-n ", " \-\-dryrun
+Dry run mode \- show commands without executing them.
+.\"
+.SS "Codec Decisions"
+.TP
+.B \-\-skip\-when\-ok
+Skip files that are already compatible. This is the default behavior.
+.TP
+.B \-\-no\-skip\-when\-ok
+Process all files even if they are already compatible.
+.TP
+.B \-\-force\-h264
+Force H.264 transcoding even if the video is already H.264.
+.TP
+.B \-\-allow\-hevc
+Allow HEVC (H.265) passthrough for SDR 8-bit content. By default,
+HEVC is transcoded to H.264 for better compatibility.
+.TP
+.B \-\-force\-aac
+Force AAC transcoding even if the audio is already AAC.
+.TP
+.B \-\-keep\-surround
+Keep surround audio channels. By default, audio is downmixed to stereo.
+.TP
+.B \-\-no\-silence
+Don't add a silent audio track if the source has no audio.
+.\"
+.SS "Encoding Quality"
+.TP
+.BI \-\-abr " BITRATE"
+Audio bitrate. Default: \fB192k\fR
+.TP
+.BI \-\-crf " VALUE"
+CRF (Constant Rate Factor) value for CPU encoding. Lower values mean
+better quality but larger files. Default: \fB20\fR
+.br
+Recommended range: 18-28
+.TP
+.BI \-\-preset " PRESET"
+x264 encoding preset. Slower presets give better compression.
+.br
+Choices: ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow
+.br
+Default: \fBslow\fR
+.\"
+.SS "Hardware Acceleration"
+.TP
+.BI \-\-hw " BACKEND"
+Hardware acceleration backend to use.
+.br
+Choices: \fBauto\fR (default), \fBvaapi\fR, \fBqsv\fR, \fBcpu\fR
+.RS
+.IP \fBauto\fR
+Automatically detect the best available backend.
+.IP \fBvaapi\fR
+Use Video Acceleration API (Intel/AMD GPUs on Linux).
+.IP \fBqsv\fR
+Use Intel Quick Sync Video.
+.IP \fBcpu\fR
+Use software encoding (libx264).
+.RE
+.TP
+.BI \-\-vaapi\-device " PATH"
+VAAPI device path. Default: \fB/dev/dri/renderD128\fR
+.TP
+.BI \-\-vaapi\-qp " VALUE"
+VAAPI quantization parameter. Default: \fB23\fR
+.TP
+.BI \-\-qsv\-quality " VALUE"
+QSV quality value. Default: \fB23\fR
+.\"
+.SS "Integrity Checks"
+.TP
+.B \-\-integrity\-check
+Enable integrity check of source files before processing. This is the default.
+.TP
+.B \-\-no\-integrity\-check
+Disable integrity check.
+.TP
+.BI \-\-stable\-wait " SECONDS"
+Seconds to wait for file size stability check. Default: \fB3\fR
+.br
+This helps ensure files are fully downloaded/copied before processing.
+.TP
+.B \-\-deep\-check
+Enable deep decode check. This decodes the entire video stream to verify
+integrity but is slow.
+.\"
+.SS "UI Settings"
+.TP
+.B \-\-no\-progress
+Disable progress bar display.
+.TP
+.BI \-\-bar\-width " WIDTH"
+Progress bar width for legacy mode. Default: \fB26\fR
+.TP
+.BI \-\-ui\-refresh\-ms " MS"
+UI refresh interval in milliseconds. Default: \fB120\fR
+.TP
+.BI \-\-stats\-period " SECONDS"
+FFmpeg stats period in seconds. Default: \fB0.2\fR
+.\"
+.SS "Pipeline Mode"
+.TP
+.B \-\-pipeline
+Enable parallel processing pipeline. This is the default.
+.TP
+.B \-\-no\-pipeline
+Disable parallel processing; use sequential mode.
+.\"
+.SS "Parallelism"
+.TP
+.BI \-\-encode\-workers " N"
+Number of parallel encoding workers. Default: \fB0\fR (auto-detect based
+on system resources).
+.TP
+.BI \-\-integrity\-workers " N"
+Number of parallel integrity check workers. Default: \fB0\fR (auto-detect).
+.\"
+.SS "Utility Commands"
+These commands perform a specific action and exit immediately.
+.TP
+.B \-\-show\-dirs
+Show XDG directory paths used by mkv2cast and exit.
+.TP
+.BI \-\-history " [N]"
+Show recent conversion history and exit. Optionally specify the number of
+entries to display (default: 20, max: 1000).
+.br
+Examples: \fB\-\-history\fR (20 lines), \fB\-\-history 50\fR, \fB\-\-history 100\fR
+.TP
+.B \-\-history\-stats
+Show conversion statistics and exit.
+.TP
+.B \-\-clean\-tmp
+Clean orphaned temporary files from cache directory and exit.
+.br
+When run as root, cleans temp files for all users on the system.
+.TP
+.BI \-\-clean\-logs " DAYS"
+Remove log files older than N days and exit.
+.br
+When run as root, cleans logs for all users on the system.
+.TP
+.BI \-\-clean\-history " DAYS"
+Remove history entries older than N days and exit.
+.TP
+.B \-\-check\-requirements
+Check system requirements and Python dependencies, then exit.
+Useful for troubleshooting installation issues.
+.\"
+.\" ==================== FILES ====================
+.SH FILES
+mkv2cast follows the XDG Base Directory Specification.
+.SS "User Configuration"
+.TP
+.I ~/.config/mkv2cast/config.toml
+User configuration file (TOML format if tomllib/tomli available).
+.TP
+.I ~/.config/mkv2cast/config.ini
+User configuration file (INI format fallback).
+.SS "System Configuration (optional)"
+.TP
+.I /etc/mkv2cast/config.toml
+System-wide configuration file. User config overrides system config.
+Only created during system-wide installation.
+.SS "State and Cache"
+.TP
+.I ~/.local/state/mkv2cast/history.db
+SQLite database storing conversion history.
+.TP
+.I ~/.local/state/mkv2cast/history.log
+JSONL fallback for history if SQLite unavailable.
+.TP
+.I ~/.local/state/mkv2cast/logs/
+Directory containing per-conversion log files.
+.TP
+.I ~/.cache/mkv2cast/tmp/
+Temporary files during encoding (automatically cleaned).
+.\"
+.\" ==================== OUTPUT NAMING ====================
+.SH OUTPUT NAMING
+Output files are named based on the transformations applied:
+.TP
+.I movie.h264.cast.mkv
+Video transcoded to H.264, audio copied.
+.TP
+.I movie.aac.cast.mkv
+Video copied, audio transcoded to AAC.
+.TP
+.I movie.h264.aac.cast.mkv
+Both video and audio transcoded.
+.TP
+.I movie.remux.cast.mkv
+File remuxed (container changed, streams copied).
+.\"
+.\" ==================== EXIT STATUS ====================
+.SH EXIT STATUS
+.TP
+.B 0
+Success \- all files processed without errors.
+.TP
+.B 2
+Some files failed to convert.
+.TP
+.B 130
+Interrupted by user (SIGINT/Ctrl+C).
+.\"
+.\" ==================== EXAMPLES ====================
+.SH EXAMPLES
+.TP
+.B mkv2cast
+Process all MKV files in the current directory recursively.
+.TP
+.B mkv2cast movie.mkv
+Process a single file.
+.TP
+.B mkv2cast \-\-hw cpu \-\-preset fast
+Use CPU encoding with fast preset for quicker (lower quality) encoding.
+.TP
+.B mkv2cast \-\-debug \-\-dryrun
+Show what would be done without actually processing files.
+.TP
+.B mkv2cast \-I '*sample*' \-I '*.eng.*'
+Ignore sample files and files with .eng. in the name.
+.TP
+.B mkv2cast \-i '*French*' \-i '*2024*'
+Only process files with French or 2024 in the filename.
+.TP
+.B mkv2cast \-\-encode\-workers 2 \-\-integrity\-workers 3
+Use 2 parallel encoding processes and 3 integrity checkers.
+.TP
+.B mkv2cast \-\-no\-recursive \-\-container mp4
+Process only current directory, output to MP4 format.
+.TP
+.B mkv2cast \-\-allow\-hevc \-\-keep\-surround
+Allow HEVC passthrough and keep surround sound.
+.TP
+.B mkv2cast \-\-check\-requirements
+Verify all system requirements are installed.
+.\"
+.\" ==================== CONFIGURATION ====================
+.SH CONFIGURATION
+A default configuration file is created on first run at
+\fI~/.config/mkv2cast/config.toml\fR (or config.ini if TOML is unavailable).
+.PP
+Example config.toml:
+.PP
+.RS
+.nf
+[output]
+suffix = ".cast"
+container = "mkv"
+
+[scan]
+recursive = true
+ignore_patterns = []
+ignore_paths = []
+
+[encoding]
+backend = "auto"
+crf = 20
+preset = "slow"
+abr = "192k"
+
+[workers]
+encode = 0
+integrity = 0
+
+[integrity]
+enabled = true
+stable_wait = 3
+deep_check = false
+.fi
+.RE
+.PP
+Command-line arguments override configuration file values.
+.\"
+.\" ==================== ENVIRONMENT ====================
+.SH ENVIRONMENT
+.TP
+.B XDG_CONFIG_HOME
+Configuration directory. Default: \fI~/.config\fR
+.TP
+.B XDG_STATE_HOME
+State directory (history, logs). Default: \fI~/.local/state\fR
+.TP
+.B XDG_CACHE_HOME
+Cache directory (temp files). Default: \fI~/.cache\fR
+.\"
+.\" ==================== NOTES ====================
+.SH NOTES
+.SS "Chromecast Compatibility"
+Chromecast devices support H.264 video (up to level 4.1) with AAC audio
+in MP4 or MKV containers. This tool ensures output files meet these
+requirements.
+.SS "Audio Track Selection"
+By default, mkv2cast prefers French audio tracks. If no French track
+is found, it uses the first available audio track.
+.SS "Recursive Scanning"
+The \fB\-\-recursive\fR option is enabled by default. Use
+\fB\-\-no\-recursive\fR to process only the current directory.
+.SS "Temporary Files"
+During encoding, temporary files are created in
+\fI~/.cache/mkv2cast/tmp/\fR. These are automatically cleaned on successful
+completion. Use \fB\-\-clean\-tmp\fR to remove orphaned temp files.
+.SS "System-wide Cleanup (Root)"
+When \fB\-\-clean\-tmp\fR or \fB\-\-clean\-logs\fR is run as root, mkv2cast
+automatically cleans temp files and logs for all users on the system.
+This is useful for system-wide installations with a systemd timer.
+.br
+System-wide cleanup respects each user's configuration.
+.\"
+.\" ==================== SEE ALSO ====================
+.SH SEE ALSO
+.BR ffmpeg (1),
+.BR ffprobe (1),
+.BR catt (1)
+.PP
+.UR https://github.com/voldardard/mkv2cast
+Project homepage
+.UE
+.PP
+.UR https://developers.google.com/cast/docs/media
+Google Cast supported media formats
+.UE
+.\"
+.\" ==================== BUGS ====================
+.SH BUGS
+Report bugs at:
+.UR https://github.com/voldardard/mkv2cast/issues
+.UE
+.\"
+.\" ==================== AUTHOR ====================
+.SH AUTHOR
+Written by voldardard.
+.\"
+.\" ==================== COPYRIGHT ====================
+.SH COPYRIGHT
+Copyright \(co 2024-2026 voldardard.
+.br
+License: GPL-3.0
+.UR https://www.gnu.org/licenses/gpl-3.0.html
+.UE
+.PP
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.

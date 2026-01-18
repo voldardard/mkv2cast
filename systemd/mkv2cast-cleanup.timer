@@ -1,0 +1,20 @@
+[Unit]
+Description=Weekly mkv2cast cleanup timer
+Documentation=man:mkv2cast(1)
+Documentation=https://github.com/voldardard/mkv2cast
+
+[Timer]
+# Run weekly on Sunday at 3:00 AM
+OnCalendar=Sun *-*-* 03:00:00
+
+# Add randomized delay up to 1 hour to avoid thundering herd
+RandomizedDelaySec=3600
+
+# Run immediately if last scheduled run was missed
+Persistent=true
+
+# Don't wake up the system from suspend
+WakeSystem=false
+
+[Install]
+WantedBy=timers.target

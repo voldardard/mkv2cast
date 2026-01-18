@@ -1,0 +1,32 @@
+[Unit]
+Description=mkv2cast system cleanup - Remove orphaned temp files and old logs for all users
+Documentation=man:mkv2cast(1)
+Documentation=https://github.com/voldardard/mkv2cast
+
+[Service]
+Type=oneshot
+
+# Clean orphaned temporary files for all users
+ExecStart=/usr/local/bin/mkv2cast --clean-tmp
+
+# Clean logs older than 30 days for all users
+ExecStart=/usr/local/bin/mkv2cast --clean-logs 30
+
+# Clean history older than 90 days for all users
+ExecStart=/usr/local/bin/mkv2cast --clean-history 90
+
+# Don't fail if mkv2cast is not installed
+ExecCondition=/usr/bin/test -x /usr/local/bin/mkv2cast
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mkv2cast-cleanup
+
+# Resource limits
+Nice=19
+IOSchedulingClass=idle
+CPUSchedulingPolicy=idle
+
+[Install]
+WantedBy=multi-user.target

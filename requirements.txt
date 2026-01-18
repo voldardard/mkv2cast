@@ -1,0 +1,33 @@
+# mkv2cast Python dependencies
+# =============================
+#
+# These packages are OPTIONAL but recommended for the best experience.
+# mkv2cast will work without them but with reduced functionality.
+#
+# Install with: pip install -r requirements.txt
+
+# Rich terminal UI - provides beautiful progress bars and tables
+# Without this, mkv2cast falls back to a basic text-based progress display
+rich>=13.0.0
+
+# TOML configuration file support (for Python < 3.11)
+# Python 3.11+ has built-in tomllib and doesn't need this
+# Without this, mkv2cast uses INI format configuration instead
+tomli>=2.0.0; python_version < "3.11"
+
+# =============================
+# System Dependencies (not Python packages)
+# =============================
+# These must be installed separately using your system package manager:
+#
+# REQUIRED:
+#   - ffmpeg (with ffprobe)
+#     Arch:   sudo pacman -S ffmpeg
+#     Debian: sudo apt install ffmpeg
+#     Fedora: sudo dnf install ffmpeg
+#
+# OPTIONAL (for hardware acceleration):
+#   - Intel VAAPI: intel-media-driver or libva-intel-driver
+#   - Intel QSV:   intel-media-sdk or oneVPL
+#
+# Run 'mkv2cast --check-requirements' to verify your setup.

@@ -1,0 +1,50 @@
+mkv2cast - Smart MKV to Chromecast-compatible converter
+Copyright (C) 2024-2026 voldardard
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+-------------------------------------------------------------------------------
+
+                    GNU GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
+
+The full text of the GNU General Public License version 3 can be found at:
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+A copy is also available at:
+https://www.gnu.org/licenses/gpl-3.0.html
+
+-------------------------------------------------------------------------------
+
+For convenience, a summary of your rights under the GPL-3.0:
+
+PERMISSIONS:
+- Commercial use
+- Distribution
+- Modification
+- Patent use
+- Private use
+
+CONDITIONS:
+- Disclose source code when distributing
+- License derivative works under GPL-3.0
+- Include original license and copyright notice
+- State changes made to the code
+
+LIMITATIONS:
+- No liability
+- No warranty
+
+For the full terms and conditions, please refer to the official license text
+at the URL above.
