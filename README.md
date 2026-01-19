@@ -1,7 +1,7 @@
 # mkv2cast
 
 <p align="center">
-  <img src="images/mkv2cast-logo.svg" alt="mkv2cast logo" width="280">
+  <img src="docs/_static/mkv2cast-logo.svg" alt="mkv2cast logo" width="280">
 </p>
 
 <!-- Badges de statut -->
