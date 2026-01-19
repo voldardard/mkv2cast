@@ -74,3 +74,4 @@ test_*.mkv
 # Distribution
 *.tar.gz
 *.zip
+tmp/
