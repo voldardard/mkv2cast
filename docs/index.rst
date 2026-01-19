@@ -85,6 +85,7 @@ Contents
    usage/advanced
    usage/hardware-acceleration
    usage/filtering
+   usage/python-api
 
 .. toctree::
    :maxdepth: 2

@@ -35,6 +35,7 @@ Convert your MKV video files to formats compatible with Chromecast devices and S
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Usage](#usage)
+- [Using mkv2cast as a Python Package](#using-mkv2cast-as-a-python-package)
 - [Options Reference](#options-reference)
 - [Examples](#examples)
 - [Maintenance](#maintenance)
@@ -446,6 +447,214 @@ mkv2cast --hw vaapi --vaapi-qp 20
 ```bash
 mkv2cast --no-recursive
 ```
+
+---
+
+## Using mkv2cast as a Python Package
+
+mkv2cast can be imported and used as a Python library in your scripts, allowing you to programmatically convert video files with full control over the conversion process.
+
+### Installation
+
+First, ensure mkv2cast is installed:
+
+```bash
+pip install mkv2cast
+```
+
+### Basic Usage
+
+The simplest way to use mkv2cast programmatically is with the `convert_file` function:
+
+```python
+from mkv2cast import convert_file
+from pathlib import Path
+
+# Convert a single file
+success, output_path, message = convert_file(Path("movie.mkv"))
+
+if success:
+    if output_path:
+        print(f"Converted to: {output_path}")
+    else:
+        print(f"Skipped: {message}")
+else:
+    print(f"Failed: {message}")
+```
+
+### Configuration
+
+Create a custom configuration to control encoding settings:
+
+```python
+from mkv2cast import Config, convert_file
+from pathlib import Path
+
+# Create custom configuration
+config = Config(
+    hw="vaapi",           # Use VAAPI hardware acceleration
+    crf=20,               # Quality setting (lower = better quality)
+    preset="slow",        # Encoding preset
+    container="mp4",      # Output container format
+    suffix=".cast",       # Output file suffix
+    notify=False          # Disable notifications in scripts
+)
+
+# Convert with custom config
+success, output_path, message = convert_file(
+    Path("movie.mkv"),
+    cfg=config
+)
+```
+
+### Analyzing Files
+
+Before converting, you can analyze a file to see what transcoding is needed:
+
+```python
+from mkv2cast import decide_for, pick_backend
+from pathlib import Path
+
+# Analyze a file
+decision = decide_for(Path("movie.mkv"))
+
+print(f"Video codec: {decision.vcodec}")
+print(f"Audio codec: {decision.acodec}")
+print(f"Needs video transcode: {decision.need_v}")
+print(f"Needs audio transcode: {decision.need_a}")
+print(f"Reason: {decision.reason_v}")
+
+# Check available backend
+backend = pick_backend()
+print(f"Best backend: {backend}")
+```
+
+### Batch Processing
+
+Process multiple files with custom logic:
+
+```python
+from pathlib import Path
+from mkv2cast import convert_file, Config
+
+config = Config(
+    hw="auto",
+    container="mkv",
+    notify=False
+)
+
+input_dir = Path("/media/videos")
+output_dir = Path("/media/converted")
+
+for mkv_file in input_dir.glob("**/*.mkv"):
+    success, output, msg = convert_file(
+        mkv_file,
+        cfg=config,
+        output_dir=output_dir
+    )
+    
+    if success and output:
+        print(f"✓ {mkv_file.name} -> {output.name}")
+    elif not success:
+        print(f"✗ {mkv_file.name}: {msg}")
+    else:
+        print(f"⊘ {mkv_file.name}: {msg}")
+```
+
+### Advanced: Building Custom Commands
+
+For more control, you can build FFmpeg commands manually:
+
+```python
+from mkv2cast import decide_for, pick_backend, build_transcode_cmd, Config
+from pathlib import Path
+import subprocess
+
+input_file = Path("movie.mkv")
+output_file = Path("movie.h264.cast.mkv")
+config = Config()
+
+# Analyze file
+decision = decide_for(input_file, config)
+
+# Select backend
+backend = pick_backend(config)
+
+# Build command
+cmd, stage = build_transcode_cmd(
+    input_file,
+    decision,
+    backend,
+    output_file,
+    log_path=None,  # Optional: Path to log file
+    cfg=config
+)
+
+# Run manually
+result = subprocess.run(cmd)
+```
+
+### Working with History
+
+Access conversion history programmatically:
+
+```python
+from mkv2cast import HistoryDB, get_app_dirs
+
+# Get history database
+dirs = get_app_dirs()
+history = HistoryDB(dirs["state"])
+
+# Get recent conversions
+recent = history.get_recent(20)
+for entry in recent:
+    print(f"{entry['status']}: {entry['input_path']}")
+
+# Get statistics
+stats = history.get_stats()
+print(f"Total conversions: {sum(stats['by_status'].values())}")
+```
+
+### Loading Configuration Files
+
+Load settings from configuration files:
+
+```python
+from mkv2cast import load_config_file, get_app_dirs, Config
+
+# Get config directory
+dirs = get_app_dirs()
+
+# Load config file (TOML or INI)
+file_config = load_config_file(dirs["config"])
+
+# Create config and manually apply settings from file
+config = Config()
+if "encoding" in file_config:
+    if "backend" in file_config["encoding"]:
+        config.hw = file_config["encoding"]["backend"]
+    if "crf" in file_config["encoding"]:
+        config.crf = file_config["encoding"]["crf"]
+    # ... apply other settings as needed
+```
+
+### Available Functions and Classes
+
+Main exports from `mkv2cast`:
+
+- **`convert_file()`** - Convert a single file
+- **`decide_for()`** - Analyze what transcoding is needed
+- **`pick_backend()`** - Auto-detect best encoding backend
+- **`build_transcode_cmd()`** - Build FFmpeg command
+- **`Config`** - Configuration dataclass
+- **`Decision`** - Analysis result dataclass
+- **`HistoryDB`** - Conversion history database
+- **`get_app_dirs()`** - Get XDG directories
+- **`load_config_file()`** - Load config from file
+- **`send_notification()`** - Send desktop notification
+- **`setup_i18n()`** - Setup internationalization
+
+For detailed API documentation, see the [API Reference](https://voldardard.github.io/mkv2cast/api/index.html).
 
 ---
 
