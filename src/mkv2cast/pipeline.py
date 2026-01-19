@@ -20,7 +20,9 @@ from mkv2cast.config import Config
 from mkv2cast.converter import (
     Decision,
     build_transcode_cmd,
+    check_disk_space,
     decide_for,
+    enforce_output_quota,
     probe_duration_ms,
 )
 from mkv2cast.i18n import _
@@ -367,6 +369,12 @@ class PipelineOrchestrator:
                 self.ui.mark_skipped(inp, _("tmp exists"))
                 continue
 
+            input_size = file_size(inp)
+            space_error = check_disk_space(final.parent, tmp.parent, input_size, self.cfg)
+            if space_error:
+                self.ui.mark_failed(inp, space_error)
+                continue
+
             # Build ffmpeg command
             cmd, stage = build_transcode_cmd(inp, d, self.backend, tmp, log_path, self.cfg)
             dur_ms = probe_duration_ms(inp)
@@ -403,41 +411,74 @@ class PipelineOrchestrator:
             filename = job.inp.name
             self.ui.start_encode(worker_id, filename, job.inp, job.final.name)
 
-            # Rebuild command (in case something changed)
-            cmd, _stage = build_transcode_cmd(job.inp, job.decision, self.backend, job.tmp, job.log_path, self.cfg)
+            attempts = max(0, self.cfg.retry_attempts)
+            total_attempts = 1 + attempts
+            attempt_backend = self.backend
+            last_error = ""
 
-            try:
-                rc = run_ffmpeg_with_progress(
-                    cmd, self.ui, worker_id, job.stage, filename, job.dur_ms, job.log_path, job.inp, self.stop_event
+            for attempt in range(total_attempts):
+                if attempt > 0:
+                    self.ui.log(f"{job.inp.name}: retry {attempt}/{attempts}")
+                    if self.cfg.retry_delay_sec > 0:
+                        time.sleep(self.cfg.retry_delay_sec)
+
+                # Rebuild command (backend may change)
+                cmd, _stage = build_transcode_cmd(
+                    job.inp, job.decision, attempt_backend, job.tmp, job.log_path, self.cfg
                 )
-            except Exception as e:
-                try:
-                    job.tmp.unlink(missing_ok=True)
-                except Exception:
-                    pass
-                self.ui.mark_failed(job.inp, _("encode error") + f": {e}")
-                continue
 
-            if rc == 0:
                 try:
-                    shutil.move(str(job.tmp), str(job.final))
-                    output_size = job.final.stat().st_size if job.final.exists() else 0
-                    self.ui.mark_done(job.inp, final_path=job.final, output_size=output_size)
+                    rc = run_ffmpeg_with_progress(
+                        cmd,
+                        self.ui,
+                        worker_id,
+                        job.stage,
+                        filename,
+                        job.dur_ms,
+                        job.log_path,
+                        job.inp,
+                        self.stop_event,
+                    )
+                    last_error = f"ffmpeg rc={rc}"
                 except Exception as e:
+                    rc = -1
+                    last_error = _("encode error") + f": {e}"
+
+                if rc == 0:
                     try:
-                        job.tmp.unlink(missing_ok=True)
-                    except Exception:
-                        pass
-                    self.ui.mark_failed(job.inp, _("move error") + f": {e}")
-            else:
+                        shutil.move(str(job.tmp), str(job.final))
+                        quota_error = enforce_output_quota(job.final, file_size(job.inp), self.cfg)
+                        if quota_error:
+                            job.final.unlink(missing_ok=True)
+                            self.ui.mark_failed(job.inp, quota_error)
+                        else:
+                            output_size = job.final.stat().st_size if job.final.exists() else 0
+                            self.ui.mark_done(job.inp, final_path=job.final, output_size=output_size)
+                    except Exception as e:
+                        try:
+                            job.tmp.unlink(missing_ok=True)
+                        except Exception:
+                            pass
+                        self.ui.mark_failed(job.inp, _("move error") + f": {e}")
+                    break
+
+                # Cleanup temp file before retry
                 try:
                     job.tmp.unlink(missing_ok=True)
                 except Exception:
                     pass
+
                 if self.stop_event.is_set():
                     self.ui.mark_failed(job.inp, _("interrupted"))
-                else:
-                    self.ui.mark_failed(job.inp, f"ffmpeg rc={rc}")
+                    break
+
+                if attempt < total_attempts - 1:
+                    if self.cfg.retry_fallback_cpu and attempt_backend != "cpu" and attempt == total_attempts - 2:
+                        attempt_backend = "cpu"
+                    continue
+
+                self.ui.mark_failed(job.inp, last_error)
+                break
 
     def run(self) -> Tuple[int, int, int, bool]:
         """Run the pipeline. Returns (ok, skipped, failed, interrupted)."""

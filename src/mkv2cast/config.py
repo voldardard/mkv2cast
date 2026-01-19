@@ -140,6 +140,7 @@ class Config:
     abr: str = "192k"
     crf: int = 20
     preset: str = "slow"
+    profile: Optional[str] = None  # fast, balanced, quality
 
     # Hardware acceleration
     vaapi_device: str = "/dev/dri/renderD128"
@@ -159,10 +160,21 @@ class Config:
     prefer_forced_subs: bool = True  # Prefer forced subtitles in audio language
     no_subtitles: bool = False  # Disable all subtitles
 
+    # Preservation
+    preserve_metadata: bool = True
+    preserve_chapters: bool = True
+    preserve_attachments: bool = True
+
     # Integrity checks
     integrity_check: bool = True
     stable_wait: int = 3
     deep_check: bool = False
+
+    # Disk guards / quotas
+    disk_min_free_mb: int = 1024
+    disk_min_free_tmp_mb: int = 512
+    max_output_mb: int = 0
+    max_output_ratio: float = 0.0
 
     # UI settings
     progress: bool = True
@@ -188,6 +200,11 @@ class Config:
     # JSON progress output (new)
     json_progress: bool = False
 
+    # Retry / robustness
+    retry_attempts: int = 1
+    retry_delay_sec: float = 2.0
+    retry_fallback_cpu: bool = True
+
     def __post_init__(self):
         """Apply automatic script mode detection after initialization."""
         # Don't auto-disable if explicitly running in CLI mode
@@ -210,6 +227,53 @@ class Config:
             self.progress = False
             self.notify = False
             self.pipeline = False
+
+    def apply_profile(self, name: str, only_if_default: bool = False) -> None:
+        """
+        Apply a preset profile to common encoding settings.
+
+        Args:
+            name: Profile name ("fast", "balanced", "quality").
+            only_if_default: If True, only apply fields still at default values.
+        """
+        profile = (name or "").strip().lower()
+        if not profile:
+            return
+
+        defaults = Config()
+
+        def _set(attr: str, value: Any) -> None:
+            if not only_if_default or getattr(self, attr) == getattr(defaults, attr):
+                setattr(self, attr, value)
+
+        if profile == "fast":
+            _set("preset", "fast")
+            _set("crf", 23)
+            _set("abr", "160k")
+            _set("vaapi_qp", 28)
+            _set("qsv_quality", 28)
+            _set("nvenc_cq", 28)
+            _set("amf_quality", 28)
+        elif profile == "balanced":
+            _set("preset", "medium")
+            _set("crf", 21)
+            _set("abr", "192k")
+            _set("vaapi_qp", 23)
+            _set("qsv_quality", 23)
+            _set("nvenc_cq", 23)
+            _set("amf_quality", 23)
+        elif profile == "quality":
+            _set("preset", "slow")
+            _set("crf", 18)
+            _set("abr", "256k")
+            _set("vaapi_qp", 20)
+            _set("qsv_quality", 20)
+            _set("nvenc_cq", 20)
+            _set("amf_quality", 20)
+        else:
+            raise ValueError(f"Unknown profile: {profile}")
+
+        self.profile = profile
 
     @classmethod
     def for_library(cls, **kwargs) -> "Config":
@@ -237,7 +301,10 @@ class Config:
         }
         # User overrides take precedence
         defaults.update(kwargs)
-        return cls(**defaults)
+        cfg = cls(**defaults)
+        if cfg.profile:
+            cfg.apply_profile(cfg.profile, only_if_default=False)
+        return cfg
 
 
 # Global config instance (set by parse_args in cli.py)
@@ -367,9 +434,15 @@ include_paths = []
 
 [encoding]
 backend = "auto"  # auto, vaapi, qsv, cpu
+# profile = "balanced"  # fast, balanced, quality
 crf = 20
 preset = "slow"
 abr = "192k"
+
+[preserve]
+metadata = true
+chapters = true
+attachments = true
 
 [workers]
 # 0 = auto-detect based on system
@@ -380,6 +453,22 @@ integrity = 0
 enabled = true
 stable_wait = 3
 deep_check = false
+
+[disk]
+# Minimum free space to keep (MB)
+min_free_mb = 1024
+min_free_tmp_mb = 512
+# Output size quotas (0 disables)
+max_output_mb = 0
+max_output_ratio = 0.0
+
+[retry]
+# Number of retries after a failure (0 disables)
+attempts = 1
+# Delay between retries (seconds)
+delay_sec = 2.0
+# Fallback to CPU encoder on last retry
+fallback_cpu = true
 
 [notifications]
 # Desktop notifications when processing completes
@@ -413,9 +502,15 @@ include_paths =
 
 [encoding]
 backend = auto
+; profile = balanced  ; fast, balanced, quality
 crf = 20
 preset = slow
 abr = 192k
+
+[preserve]
+metadata = true
+chapters = true
+attachments = true
 
 [workers]
 # 0 = auto-detect based on system
@@ -426,6 +521,22 @@ integrity = 0
 enabled = true
 stable_wait = 3
 deep_check = false
+
+[disk]
+; Minimum free space to keep (MB)
+min_free_mb = 1024
+min_free_tmp_mb = 512
+; Output size quotas (0 disables)
+max_output_mb = 0
+max_output_ratio = 0.0
+
+[retry]
+; Number of retries after a failure (0 disables)
+attempts = 1
+; Delay between retries (seconds)
+delay_sec = 2.0
+; Fallback to CPU encoder on last retry
+fallback_cpu = true
 
 [notifications]
 # Desktop notifications when processing completes
@@ -480,14 +591,25 @@ def apply_config_to_args(file_config: dict, cfg: Config, cli_explicit: Optional[
         ("scan", "include_patterns"): "include_patterns",
         ("scan", "include_paths"): "include_paths",
         ("encoding", "backend"): "hw",
+        ("encoding", "profile"): "profile",
         ("encoding", "crf"): "crf",
         ("encoding", "preset"): "preset",
         ("encoding", "abr"): "abr",
+        ("preserve", "metadata"): "preserve_metadata",
+        ("preserve", "chapters"): "preserve_chapters",
+        ("preserve", "attachments"): "preserve_attachments",
         ("workers", "encode"): "encode_workers",
         ("workers", "integrity"): "integrity_workers",
         ("integrity", "enabled"): "integrity_check",
         ("integrity", "stable_wait"): "stable_wait",
         ("integrity", "deep_check"): "deep_check",
+        ("disk", "min_free_mb"): "disk_min_free_mb",
+        ("disk", "min_free_tmp_mb"): "disk_min_free_tmp_mb",
+        ("disk", "max_output_mb"): "max_output_mb",
+        ("disk", "max_output_ratio"): "max_output_ratio",
+        ("retry", "attempts"): "retry_attempts",
+        ("retry", "delay_sec"): "retry_delay_sec",
+        ("retry", "fallback_cpu"): "retry_fallback_cpu",
         ("notifications", "enabled"): "notify",
         ("notifications", "on_success"): "notify_on_success",
         ("notifications", "on_failure"): "notify_on_failure",

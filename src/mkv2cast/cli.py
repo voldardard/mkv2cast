@@ -222,6 +222,15 @@ Examples:
         choices=["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"],
     )
 
+    # Profiles
+    profile_group = parser.add_argument_group(_("Profiles"))
+    profile_group.add_argument(
+        "--profile",
+        choices=["fast", "balanced", "quality"],
+        default=None,
+        help=_("Apply encoding profile (fast, balanced, quality)"),
+    )
+
     # Hardware acceleration
     hw_group = parser.add_argument_group(_("Hardware acceleration"))
     hw_group.add_argument("--hw", choices=["auto", "nvenc", "amf", "qsv", "vaapi", "cpu"], default="auto")
@@ -266,12 +275,63 @@ Examples:
     )
     subtitle_group.add_argument("--no-subtitles", action="store_true", default=False, help=_("Disable all subtitles"))
 
+    # Preservation
+    preserve_group = parser.add_argument_group(_("Preservation"))
+    preserve_group.add_argument(
+        "--no-metadata",
+        action="store_false",
+        dest="preserve_metadata",
+        default=True,
+        help=_("Disable metadata preservation"),
+    )
+    preserve_group.add_argument(
+        "--no-chapters",
+        action="store_false",
+        dest="preserve_chapters",
+        default=True,
+        help=_("Disable chapter preservation"),
+    )
+    preserve_group.add_argument(
+        "--no-attachments",
+        action="store_false",
+        dest="preserve_attachments",
+        default=True,
+        help=_("Disable MKV attachment preservation"),
+    )
+
     # Integrity checks
     integrity_group = parser.add_argument_group(_("Integrity checks"))
     integrity_group.add_argument("--integrity-check", action="store_true", default=True)
     integrity_group.add_argument("--no-integrity-check", action="store_false", dest="integrity_check")
     integrity_group.add_argument("--stable-wait", type=int, default=3)
     integrity_group.add_argument("--deep-check", action="store_true")
+
+    # Disk guards
+    disk_group = parser.add_argument_group(_("Disk guards"))
+    disk_group.add_argument(
+        "--min-free-mb",
+        type=int,
+        default=1024,
+        help=_("Minimum free space to keep in output filesystem (MB)"),
+    )
+    disk_group.add_argument(
+        "--min-free-tmp-mb",
+        type=int,
+        default=512,
+        help=_("Minimum free space to keep in temp filesystem (MB)"),
+    )
+    disk_group.add_argument(
+        "--max-output-mb",
+        type=int,
+        default=0,
+        help=_("Maximum output size per file (MB, 0 disables)"),
+    )
+    disk_group.add_argument(
+        "--max-output-ratio",
+        type=float,
+        default=0.0,
+        help=_("Maximum output size ratio vs input (0 disables)"),
+    )
 
     # UI settings
     ui_group = parser.add_argument_group(_("UI settings"))
@@ -284,6 +344,28 @@ Examples:
     pipeline_group = parser.add_argument_group(_("Pipeline mode"))
     pipeline_group.add_argument("--pipeline", action="store_true", default=True)
     pipeline_group.add_argument("--no-pipeline", action="store_false", dest="pipeline")
+
+    # Reliability
+    retry_group = parser.add_argument_group(_("Reliability"))
+    retry_group.add_argument(
+        "--retry-attempts",
+        type=int,
+        default=1,
+        help=_("Number of retries after failure (0 disables)"),
+    )
+    retry_group.add_argument(
+        "--retry-delay",
+        type=float,
+        default=2.0,
+        help=_("Delay between retries in seconds"),
+    )
+    retry_group.add_argument(
+        "--no-retry-fallback-cpu",
+        action="store_false",
+        dest="retry_fallback_cpu",
+        default=True,
+        help=_("Disable CPU fallback on last retry"),
+    )
 
     # Parallelism
     parallel_group = parser.add_argument_group(_("Parallelism"))
@@ -341,6 +423,7 @@ Examples:
         abr=parsed_args.abr,
         crf=parsed_args.crf,
         preset=parsed_args.preset,
+        profile=parsed_args.profile,
         hw=parsed_args.hw,
         vaapi_device=parsed_args.vaapi_device,
         vaapi_qp=parsed_args.vaapi_qp,
@@ -353,9 +436,16 @@ Examples:
         subtitle_track=parsed_args.subtitle_track,
         prefer_forced_subs=not parsed_args.no_forced_subs,
         no_subtitles=parsed_args.no_subtitles,
+        preserve_metadata=parsed_args.preserve_metadata,
+        preserve_chapters=parsed_args.preserve_chapters,
+        preserve_attachments=parsed_args.preserve_attachments,
         integrity_check=parsed_args.integrity_check,
         stable_wait=parsed_args.stable_wait,
         deep_check=parsed_args.deep_check,
+        disk_min_free_mb=parsed_args.min_free_mb,
+        disk_min_free_tmp_mb=parsed_args.min_free_tmp_mb,
+        max_output_mb=parsed_args.max_output_mb,
+        max_output_ratio=parsed_args.max_output_ratio,
         progress=parsed_args.progress,
         bar_width=parsed_args.bar_width,
         ui_refresh_ms=parsed_args.ui_refresh_ms,
@@ -366,7 +456,16 @@ Examples:
         notify=parsed_args.notify,
         lang=parsed_args.lang,
         json_progress=parsed_args.json_progress,
+        retry_attempts=parsed_args.retry_attempts,
+        retry_delay_sec=parsed_args.retry_delay,
+        retry_fallback_cpu=parsed_args.retry_fallback_cpu,
     )
+
+    if cfg.profile:
+        try:
+            cfg.apply_profile(cfg.profile, only_if_default=False)
+        except ValueError as exc:
+            print(f"Warning: {exc}", file=sys.stderr)
 
     single = Path(parsed_args.file).expanduser() if parsed_args.file else None
     return cfg, single
@@ -1523,6 +1622,11 @@ def main() -> int:
     file_config = load_config_file(APP_DIRS["config"])
     if file_config:
         apply_config_to_args(file_config, cfg)
+    if cfg.profile:
+        try:
+            cfg.apply_profile(cfg.profile, only_if_default=True)
+        except ValueError as exc:
+            print(f"Warning: {exc}", file=sys.stderr)
 
     # Initialize history database
     HISTORY_DB = HistoryDB(APP_DIRS["state"])

@@ -84,6 +84,68 @@ def file_size(path: Path) -> int:
         return 0
 
 
+def _mb_to_bytes(mb: int) -> int:
+    """Convert MB to bytes (0 for invalid values)."""
+    try:
+        return max(0, int(mb)) * 1024 * 1024
+    except Exception:
+        return 0
+
+
+def check_disk_space(
+    output_dir: Path,
+    tmp_dir: Optional[Path],
+    estimated_bytes: int,
+    cfg: Config,
+) -> Optional[str]:
+    """Return error message if disk guard would be violated, else None."""
+    try:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
+
+    min_free_out = _mb_to_bytes(cfg.disk_min_free_mb)
+    if min_free_out > 0:
+        try:
+            usage = shutil.disk_usage(str(output_dir))
+            if usage.free - estimated_bytes < min_free_out:
+                return f"Insufficient free space in {output_dir} (min {cfg.disk_min_free_mb} MB)"
+        except Exception:
+            pass
+
+    if tmp_dir is not None and cfg.disk_min_free_tmp_mb > 0:
+        try:
+            if output_dir.exists() and tmp_dir.exists():
+                if output_dir.stat().st_dev != tmp_dir.stat().st_dev:
+                    usage = shutil.disk_usage(str(tmp_dir))
+                    min_free_tmp = _mb_to_bytes(cfg.disk_min_free_tmp_mb)
+                    if usage.free - estimated_bytes < min_free_tmp:
+                        return f"Insufficient temp space in {tmp_dir} (min {cfg.disk_min_free_tmp_mb} MB)"
+        except Exception:
+            pass
+
+    return None
+
+
+def enforce_output_quota(output_path: Path, input_size: int, cfg: Config) -> Optional[str]:
+    """Return error message if output exceeds quota, else None."""
+    try:
+        out_size = output_path.stat().st_size
+    except Exception:
+        return None
+
+    if cfg.max_output_mb > 0:
+        max_bytes = _mb_to_bytes(cfg.max_output_mb)
+        if max_bytes > 0 and out_size > max_bytes:
+            return f"Output exceeds max size ({cfg.max_output_mb} MB)"
+
+    if cfg.max_output_ratio > 0 and input_size > 0:
+        if out_size > int(input_size * cfg.max_output_ratio):
+            return f"Output exceeds max ratio ({cfg.max_output_ratio:.2f}x)"
+
+    return None
+
+
 # -------------------- BACKEND SELECTION --------------------
 
 
@@ -798,7 +860,20 @@ def build_transcode_cmd(
     else:
         args += ["-c:s", "mov_text"]
 
-    args += ["-map_metadata", "0", "-map_chapters", "0", "-max_muxing_queue_size", "2048"]
+    if cfg.preserve_metadata:
+        args += ["-map_metadata", "0"]
+    else:
+        args += ["-map_metadata", "-1"]
+
+    if cfg.preserve_chapters:
+        args += ["-map_chapters", "0"]
+    else:
+        args += ["-map_chapters", "-1"]
+
+    if cfg.preserve_attachments and ext == "mkv":
+        args += ["-map", "0:t?", "-c:t", "copy"]
+
+    args += ["-max_muxing_queue_size", "2048"]
     args += [str(tmp_out)]
 
     stage = "TRANSCODE"
@@ -1051,13 +1126,17 @@ def convert_file(
         _call_callback("skipped", progress_percent=100.0)
         return True, output_path, "Output already exists"
 
+    input_size = file_size(input_path)
+    space_error = check_disk_space(output_dir, output_dir, input_size, cfg)
+    if space_error:
+        _call_callback("failed", error=space_error)
+        return False, None, space_error
+
     # Create temp path
     tmp_path = output_dir / f"{input_path.stem}{tag}{cfg.suffix}.tmp.{os.getpid()}.{cfg.container}"
 
-    # Build command
-    cmd, stage = build_transcode_cmd(input_path, decision, backend, tmp_path, log_path, cfg)
-
     if cfg.dryrun:
+        cmd, _stage = build_transcode_cmd(input_path, decision, backend, tmp_path, log_path, cfg)
         _call_callback("skipped", progress_percent=100.0)
         return True, None, f"DRYRUN: {shlex.join(cmd)}"
 
@@ -1067,33 +1146,76 @@ def convert_file(
     # Signal encoding start
     _call_callback("encoding", progress_percent=0.0, duration_ms=dur_ms)
 
-    # Run ffmpeg with progress parsing if callback is provided
-    if progress_callback is not None:
-        return _run_ffmpeg_with_callback(cmd, tmp_path, output_path, stage, dur_ms, input_path, progress_callback)
-    else:
-        # Original behavior without callback
-        try:
-            result = subprocess.run(cmd, capture_output=True, timeout=86400)  # 24h timeout
+    last_error = ""
+    attempts = max(0, cfg.retry_attempts)
+    total_attempts = 1 + attempts
+    attempt_backend = backend
 
-            if result.returncode == 0:
-                # Move temp to final
-                shutil.move(str(tmp_path), str(output_path))
-                return True, output_path, f"{stage} complete"
-            else:
-                # Clean up temp file
+    for attempt in range(total_attempts):
+        if attempt > 0:
+            _call_callback("retry", error=last_error)
+            if cfg.retry_delay_sec > 0:
+                time.sleep(cfg.retry_delay_sec)
+
+        cmd, stage = build_transcode_cmd(input_path, decision, attempt_backend, tmp_path, log_path, cfg)
+
+        # Run ffmpeg with progress parsing if callback is provided
+        if progress_callback is not None:
+            success, out_path, message = _run_ffmpeg_with_callback(
+                cmd, tmp_path, output_path, stage, dur_ms, input_path, progress_callback
+            )
+        else:
+            # Original behavior without callback
+            try:
+                result = subprocess.run(cmd, capture_output=True, timeout=86400)  # 24h timeout
+
+                if result.returncode == 0:
+                    # Move temp to final
+                    shutil.move(str(tmp_path), str(output_path))
+                    success = True
+                    out_path = output_path
+                    message = f"{stage} complete"
+                else:
+                    # Clean up temp file
+                    if tmp_path.exists():
+                        tmp_path.unlink()
+                    success = False
+                    out_path = None
+                    message = f"ffmpeg error (rc={result.returncode})"
+
+            except subprocess.TimeoutExpired:
                 if tmp_path.exists():
                     tmp_path.unlink()
-                return False, None, f"ffmpeg error (rc={result.returncode})"
+                success = False
+                out_path = None
+                message = "Timeout exceeded"
 
-        except subprocess.TimeoutExpired:
-            if tmp_path.exists():
-                tmp_path.unlink()
-            return False, None, "Timeout exceeded"
+            except Exception as e:
+                if tmp_path.exists():
+                    tmp_path.unlink()
+                success = False
+                out_path = None
+                message = f"Error: {e}"
 
-        except Exception as e:
-            if tmp_path.exists():
-                tmp_path.unlink()
-            return False, None, f"Error: {e}"
+        if success and out_path:
+            quota_error = enforce_output_quota(out_path, input_size, cfg)
+            if quota_error:
+                try:
+                    out_path.unlink()
+                except Exception:
+                    pass
+                _call_callback("failed", error=quota_error)
+                return False, None, quota_error
+            return True, out_path, message
+
+        last_error = message
+
+        if attempt < total_attempts - 1:
+            if cfg.retry_fallback_cpu and attempt_backend != "cpu" and attempt == total_attempts - 2:
+                attempt_backend = "cpu"
+            continue
+
+    return False, None, last_error
 
 
 def _run_ffmpeg_with_callback(

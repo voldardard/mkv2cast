@@ -9,14 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.2.4] - 2026-01-26
+## [1.2.5] - 2026-01-26
 
 ### Added
+- Encoding profiles (fast/balanced/quality) for one-flag tuning
+- Disk guards & output quotas to prevent unexpected storage exhaustion
+- Metadata/chapters/attachments preservation controls
+- Pipeline auto-retry with optional CPU fallback
 - Myst-parser is now part of dev dependencies so Sphinx builds work out of the box
 
 ### Changed
-- AUR and Debian packaging aligned for 1.2.4 release (completions, timers, watch units)
-- Documentation and README version references updated to 1.2.4
+- AUR and Debian packaging aligned for 1.2.5 release (completions, timers, watch units)
+- Documentation and README version references updated to 1.2.5
 
 ### Fixed
 - Sphinx build failure due to missing `myst_parser` extension

@@ -77,7 +77,7 @@ Convert your MKV video files to formats compatible with Chromecast devices and S
 
 | | |
 |---|---|
-| **Version** | 1.2.4 |
+| **Version** | 1.2.5 |
 | **Author** | voldardard |
 | **Date** | January 2026 |
 | **License** | GPL-3.0 |
@@ -220,8 +220,8 @@ Or download the `.deb` package directly from [GitHub Releases](https://github.co
 
 ```bash
 # Download and install specific version
-wget https://github.com/voldardard/mkv2cast/releases/download/v1.2.4/mkv2cast_1.2.4-1_all.deb
-sudo dpkg -i mkv2cast_1.2.4-1_all.deb
+wget https://github.com/voldardard/mkv2cast/releases/download/v1.2.5/mkv2cast_1.2.5-1_all.deb
+sudo dpkg -i mkv2cast_1.2.5-1_all.deb
 sudo apt-get install -f  # Install dependencies
 ```
 
@@ -865,6 +865,12 @@ For detailed API documentation, see the [API Reference](https://voldardard.githu
 | `--crf VALUE` | `20` | CRF for CPU encoding (18-28) |
 | `--preset PRESET` | `slow` | x264 preset |
 
+### Profiles
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--profile {fast,balanced,quality}` | - | Apply encoding profile (sets CRF, preset, and hardware quality defaults) |
+
 ### Hardware Acceleration
 
 | Option | Default | Description |
@@ -876,6 +882,14 @@ For detailed API documentation, see the [API Reference](https://voldardard.githu
 | `--nvenc-cq VALUE` | `23` | NVENC constant quality (0-51) |
 | `--amf-quality VALUE` | `23` | AMD AMF quality (0-51) |
 
+### Preservation
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--no-metadata` | enabled | Disable metadata preservation |
+| `--no-chapters` | enabled | Disable chapter preservation |
+| `--no-attachments` | enabled | Disable MKV attachments preservation |
+
 ### Integrity Checks
 
 | Option | Default | Description |
@@ -885,6 +899,15 @@ For detailed API documentation, see the [API Reference](https://voldardard.githu
 | `--stable-wait SECONDS` | `3` | Wait for file stability |
 | `--deep-check` | disabled | Deep decode verification |
 
+### Disk Guards & Quotas
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--min-free-mb MB` | `1024` | Minimum free space to keep in output filesystem |
+| `--min-free-tmp-mb MB` | `512` | Minimum free space to keep in temp filesystem |
+| `--max-output-mb MB` | `0` | Max output size per file (0 = disabled) |
+| `--max-output-ratio RATIO` | `0.0` | Max output size ratio vs input (0 = disabled) |
+
 ### Parallelism
 
 | Option | Default | Description |
@@ -893,6 +916,14 @@ For detailed API documentation, see the [API Reference](https://voldardard.githu
 | `--no-pipeline` | - | Sequential mode |
 | `--encode-workers N` | `0` (auto) | Parallel encoding workers |
 | `--integrity-workers N` | `0` (auto) | Parallel integrity workers |
+
+### Reliability
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--retry-attempts N` | `1` | Number of retries after failure (0 = disabled) |
+| `--retry-delay SECONDS` | `2.0` | Delay between retries |
+| `--no-retry-fallback-cpu` | enabled | Disable CPU fallback on last retry |
 
 ### JSON Progress Output
 
@@ -1247,14 +1278,19 @@ docker-compose up -d
 
 | Feature | Priority | Complexity | Status |
 |---------|----------|------------|--------|
-| Profiles (fast/balanced/quality) | Medium | Low | 🚧 In Progress |
+| Profiles (fast/balanced/quality) | Medium | Low | ✅ Done |
+| Disk guards & quotas | High | Low | ✅ Done |
+| Metadata/chapters/attachments preservation | Medium | Medium | ✅ Done |
+| Pipeline auto-retry + CPU fallback | Medium | Medium | ✅ Done |
 | HDR to SDR tone mapping | Low | High | Planned |
 | Webhooks notifications | Low | Low | Planned |
-| Metadata preservation | Low | Medium | Planned |
+| Audio loudness normalization (EBU R128) | Medium | Medium | Planned |
+| Subtitle extraction + forced-burn options | Medium | Medium | Planned |
 | Integration Plex/Jellyfin | Low | High | Planned |
 | Automatic device capability detection (Chromecast/TV) | Medium | Medium | Idea |
 | Metrics export (Prometheus/StatsD) from history and live runs | Low | Medium | Idea |
 | Remote/agent workers for headless servers | Low | High | Idea |
+| Package signing (APT GPG + checksums) | Medium | Low | Idea |
 
 ### Recent Additions (v1.2.x)
 

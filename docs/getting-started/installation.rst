@@ -77,8 +77,8 @@ Download the ``.deb`` package from `GitHub Releases <https://github.com/voldarda
 
 .. code-block:: bash
 
-   wget https://github.com/voldardard/mkv2cast/releases/download/v1.2.4/mkv2cast_1.2.4-1_all.deb
-   sudo dpkg -i mkv2cast_1.2.4-1_all.deb
+   wget https://github.com/voldardard/mkv2cast/releases/download/v1.2.5/mkv2cast_1.2.5-1_all.deb
+   sudo dpkg -i mkv2cast_1.2.5-1_all.deb
    sudo apt-get install -f  # Install dependencies
 
 Debian packages install the man page, bash/zsh completions, the user cleanup timer, and the optional system-wide cleanup timer. The watch mode service and timer are also available as user units.

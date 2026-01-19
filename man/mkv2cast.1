@@ -4,7 +4,7 @@
 .\" Copyright (C) 2024-2026 voldardard
 .\" License: GPL-3.0
 .\"
-.TH MKV2CAST 1 "January 2026" "mkv2cast 1.2.4" "User Commands"
+.TH MKV2CAST 1 "January 2026" "mkv2cast 1.2.5" "User Commands"
 .\"
 .\" ==================== NAME ====================
 .SH NAME
@@ -152,6 +152,11 @@ Choices: ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, ver
 .br
 Default: \fBslow\fR
 .\"
+.SS "Profiles"
+.TP
+.BI \-\-profile " NAME"
+Apply encoding profile. Choices: \fBfast\fR, \fBbalanced\fR, \fBquality\fR. Profiles set CRF, preset, and hardware quality defaults.
+.\"
 .SS "Hardware Acceleration"
 .TP
 .BI \-\-hw " BACKEND"
@@ -213,6 +218,17 @@ Do not prefer forced subtitles when selecting tracks.
 .B \-\-no\-subtitles
 Disable all subtitle embedding.
 .\"
+.SS "Preservation"
+.TP
+.B \-\-no\-metadata
+Disable metadata preservation.
+.TP
+.B \-\-no\-chapters
+Disable chapter preservation.
+.TP
+.B \-\-no\-attachments
+Disable MKV attachment preservation (fonts, cover art).
+.\"
 .SS "Integrity Checks"
 .TP
 .B \-\-integrity\-check
@@ -229,6 +245,20 @@ This helps ensure files are fully downloaded/copied before processing.
 .B \-\-deep\-check
 Enable deep decode check. This decodes the entire video stream to verify
 integrity but is slow.
+.\"
+.SS "Disk Guards"
+.TP
+.BI \-\-min\-free\-mb " MB"
+Minimum free space to keep in the output filesystem. Default: \fB1024\fR.
+.TP
+.BI \-\-min\-free\-tmp\-mb " MB"
+Minimum free space to keep in the temp filesystem. Default: \fB512\fR.
+.TP
+.BI \-\-max\-output\-mb " MB"
+Maximum output size per file (0 disables). Default: \fB0\fR.
+.TP
+.BI \-\-max\-output\-ratio " RATIO"
+Maximum output size ratio vs input (0 disables). Default: \fB0.0\fR.
 .\"
 .SS "UI Settings"
 .TP
@@ -267,6 +297,17 @@ on system resources).
 .TP
 .BI \-\-integrity\-workers " N"
 Number of parallel integrity check workers. Default: \fB0\fR (auto-detect).
+.\"
+.SS "Reliability"
+.TP
+.BI \-\-retry\-attempts " N"
+Number of retries after failure (0 disables). Default: \fB1\fR.
+.TP
+.BI \-\-retry\-delay " SECONDS"
+Delay between retries. Default: \fB2.0\fR.
+.TP
+.B \-\-no\-retry\-fallback\-cpu
+Disable CPU fallback on the last retry.
 .\"
 .SS "Notifications"
 .TP
