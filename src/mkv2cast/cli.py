@@ -230,9 +230,7 @@ Examples:
         default=None,
         help=_("Comma-separated language codes priority (e.g., fre,fra,fr,eng)"),
     )
-    audio_group.add_argument(
-        "--audio-track", type=int, default=None, help=_("Explicit audio track index (0-based)")
-    )
+    audio_group.add_argument("--audio-track", type=int, default=None, help=_("Explicit audio track index (0-based)"))
 
     # Subtitle selection
     subtitle_group = parser.add_argument_group(_("Subtitle selection"))
@@ -257,9 +255,7 @@ Examples:
         default=False,
         help=_("Don't prefer forced subtitles"),
     )
-    subtitle_group.add_argument(
-        "--no-subtitles", action="store_true", default=False, help=_("Disable all subtitles")
-    )
+    subtitle_group.add_argument("--no-subtitles", action="store_true", default=False, help=_("Disable all subtitles"))
 
     # Integrity checks
     integrity_group = parser.add_argument_group(_("Integrity checks"))
