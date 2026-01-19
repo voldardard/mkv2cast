@@ -9,7 +9,7 @@ import os
 import time
 from pathlib import Path
 from threading import Event, Thread
-from typing import Any, Callable, Optional, Set, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Optional, Set
 
 from mkv2cast.config import Config
 from mkv2cast.integrity import check_file_stable
