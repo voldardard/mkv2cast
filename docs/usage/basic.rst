@@ -244,6 +244,28 @@ Monitor a directory for new MKV files and convert automatically.
 Watch mode uses ``watchdog`` library if available for efficient file system monitoring.
 Install with: ``pip install mkv2cast[watch]``
 
+**Systemd service:**
+
+You can run watch mode as a systemd service for automatic startup:
+
+.. code-block:: bash
+
+   # Copy service file to user systemd directory
+   cp systemd/mkv2cast-watch.service ~/.config/systemd/user/
+   
+   # Edit the service to set your watch directory
+   # Edit Environment="MKV2CAST_WATCH_DIR=..." in the service file
+   
+   # Enable and start the service
+   systemctl --user enable mkv2cast-watch.service
+   systemctl --user start mkv2cast-watch.service
+   
+   # Check status
+   systemctl --user status mkv2cast-watch.service
+   
+   # View logs
+   journalctl --user -u mkv2cast-watch -f
+
 Language
 --------
 

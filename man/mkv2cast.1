@@ -149,14 +149,18 @@ Default: \fBslow\fR
 .BI \-\-hw " BACKEND"
 Hardware acceleration backend to use.
 .br
-Choices: \fBauto\fR (default), \fBvaapi\fR, \fBqsv\fR, \fBcpu\fR
+Choices: \fBauto\fR (default), \fBnvenc\fR, \fBamf\fR, \fBqsv\fR, \fBvaapi\fR, \fBcpu\fR
 .RS
 .IP \fBauto\fR
-Automatically detect the best available backend.
-.IP \fBvaapi\fR
-Use Video Acceleration API (Intel/AMD GPUs on Linux).
+Automatically detect the best available backend (priority: NVENC > AMF > QSV > VAAPI > CPU).
+.IP \fBnvenc\fR
+Use NVIDIA NVENC (NVIDIA GPUs).
+.IP \fBamf\fR
+Use AMD AMF (AMD GPUs with GCN 2.0+).
 .IP \fBqsv\fR
 Use Intel Quick Sync Video.
+.IP \fBvaapi\fR
+Use Video Acceleration API (Intel/AMD GPUs on Linux).
 .IP \fBcpu\fR
 Use software encoding (libx264).
 .RE
@@ -169,6 +173,12 @@ VAAPI quantization parameter. Default: \fB23\fR
 .TP
 .BI \-\-qsv\-quality " VALUE"
 QSV quality value. Default: \fB23\fR
+.TP
+.BI \-\-nvenc\-cq " VALUE"
+NVENC constant quality (0-51, lower = better). Default: \fB23\fR
+.TP
+.BI \-\-amf\-quality " VALUE"
+AMD AMF quality (0-51, lower = better). Default: \fB23\fR
 .\"
 .SS "Integrity Checks"
 .TP
@@ -208,6 +218,13 @@ Enable parallel processing pipeline. This is the default.
 .TP
 .B \-\-no\-pipeline
 Disable parallel processing; use sequential mode.
+.TP
+.B \-\-json\-progress
+Output structured JSON progress events to stdout. Each line is a JSON object
+with event type and progress data. Useful for integration with web UIs,
+monitoring tools, or custom scripts.
+.br
+Events: start, file_checking, file_start, progress, file_done, complete.
 .\"
 .SS "Parallelism"
 .TP

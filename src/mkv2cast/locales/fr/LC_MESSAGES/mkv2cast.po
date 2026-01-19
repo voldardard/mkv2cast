@@ -420,3 +420,11 @@ msgstr "Surveiller le dossier pour les nouveaux fichiers MKV et convertir automa
 
 msgid "Polling interval in seconds for watch mode (default: 5)"
 msgstr "Intervalle de vérification en secondes pour le mode surveillance (défaut: 5)"
+
+# AMD AMF
+msgid "AMD AMF quality (0-51)"
+msgstr "Qualité AMD AMF (0-51)"
+
+# JSON Progress
+msgid "Output JSON progress for integration with other applications"
+msgstr "Sortie JSON du progrès pour intégration avec d'autres applications"

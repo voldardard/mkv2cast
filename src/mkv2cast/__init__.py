@@ -19,7 +19,7 @@ Example usage:
     result = convert_file("movie.mkv", config)
 """
 
-__version__ = "1.1.3"
+__version__ = "1.2.0"
 __author__ = "voldardard"
 __license__ = "GPL-3.0"
 __copyright__ = "Copyright (C) 2024-2026 voldardard"
@@ -38,6 +38,7 @@ from mkv2cast.converter import (
 from mkv2cast.history import HistoryDB
 from mkv2cast.i18n import _, setup_i18n
 from mkv2cast.integrity import integrity_check
+from mkv2cast.json_progress import JSONProgressOutput, parse_ffmpeg_progress_for_json
 from mkv2cast.notifications import send_notification
 
 __all__ = [
@@ -65,4 +66,7 @@ __all__ = [
     "setup_i18n",
     # Notifications
     "send_notification",
+    # JSON progress
+    "JSONProgressOutput",
+    "parse_ffmpeg_progress_for_json",
 ]

@@ -1,0 +1,36 @@
+[Unit]
+Description=mkv2cast watch mode - Monitor directory for new MKV files
+Documentation=man:mkv2cast(1)
+Documentation=https://github.com/voldardard/mkv2cast
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+
+# User service - runs as the logged-in user
+User=%u
+
+# Working directory to watch (configurable via environment)
+Environment="MKV2CAST_WATCH_DIR=%h/Downloads"
+Environment="MKV2CAST_WATCH_INTERVAL=5.0"
+
+# Command to run
+ExecStart=%h/.local/bin/mkv2cast --watch ${MKV2CAST_WATCH_DIR} --watch-interval ${MKV2CAST_WATCH_INTERVAL}
+
+# Don't fail if mkv2cast is not installed
+ExecStartPre=/usr/bin/test -x %h/.local/bin/mkv2cast
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mkv2cast-watch
+
+# Resource limits
+Nice=10
+CPUSchedulingPolicy=other
+CPUSchedulingPriority=0
+
+[Install]
+WantedBy=default.target

@@ -9,6 +9,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-01-19
+
+### Added
+- **NVIDIA NVENC Support**: Hardware-accelerated encoding on NVIDIA GPUs (GTX 600+ series, RTX)
+  - Automatic detection and testing in `--check-requirements`
+  - `--hw nvenc` option to force NVENC backend
+  - `--nvenc-cq` option for constant quality (0-51, default: 23)
+  - Priority: NVENC > AMF > QSV > VAAPI > CPU
+- **AMD AMF Support**: Hardware-accelerated encoding on AMD GPUs (GCN 2.0+)
+  - Automatic detection and testing in `--check-requirements`
+  - `--hw amf` option to force AMF backend
+  - `--amf-quality` option for quality control (0-51, default: 23)
+  - Quality modes mapped from CPU presets (speed/balanced/quality)
+- **Audio Track Selection**: Choose audio track by language or index
+  - `--audio-lang` for comma-separated language codes (e.g., "fre,fra,fr,eng")
+  - `--audio-track` for explicit track index (0-based)
+  - Automatic fallback to French, then first available track
+- **Subtitle Selection**: Advanced subtitle track selection
+  - `--subtitle-lang` for language-based selection
+  - `--subtitle-track` for explicit track index
+  - `--prefer-forced-subs` to prioritize forced subtitles in audio language (default: enabled)
+  - `--no-subtitles` to disable subtitle embedding
+- **Watch Mode**: Monitor directories for new MKV files
+  - `--watch [DIR]` to watch a directory (default: current directory)
+  - `--watch-interval SECONDS` for polling interval (default: 5.0)
+  - Uses `watchdog` library if available, falls back to polling
+  - Automatic conversion of new files as they appear
+- **Systemd Service for Watch Mode**: Run watch mode as a background service
+  - `systemd/mkv2cast-watch.service` for user service
+  - `systemd/mkv2cast-watch.timer` for boot-time activation (optional)
+  - Configurable via environment variables (`MKV2CAST_WATCH_DIR`, `MKV2CAST_WATCH_INTERVAL`)
+- **JSON Progress Output**: Structured JSON for integration with external tools
+  - `--json-progress` option outputs JSON events to stdout
+  - Events: `start`, `file_checking`, `file_start`, `progress`, `file_done`, `complete`
+  - Includes progress percentage, FPS, ETA, bitrate, speed, and more
+  - Python API: `JSONProgressOutput` class and `parse_ffmpeg_progress_for_json` function
+  - Full documentation in Python API guide
+
+### Changed
+- Backend priority updated: NVENC > AMF > QSV > VAAPI > CPU
+- `--check-requirements` now shows NVENC and AMF status
+- Hardware acceleration documentation expanded with NVENC and AMF sections
+- Python API exports now include `JSONProgressOutput` and `parse_ffmpeg_progress_for_json`
+
+### Fixed
+- Improved type safety with proper type annotations
+- Better error handling in watch mode
+
+---
+
 ## [1.1.2] - 2026-01-19
 
 ### Added

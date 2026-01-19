@@ -199,6 +199,44 @@ def test_nvenc() -> bool:
     return run_quiet(cmd, timeout=6.0)
 
 
+def test_amf() -> bool:
+    """Test if AMD AMF encoding works."""
+    # Check if h264_amf encoder is available
+    if not have_encoder("h264_amf"):
+        return False
+
+    # Test actual encoding
+    cmd = [
+        "ffmpeg",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc2=size=128x128:rate=30",
+        "-t",
+        "0.2",
+        "-c:v",
+        "h264_amf",
+        "-quality",
+        "balanced",
+        "-rc",
+        "cqp",
+        "-qp_i",
+        "23",
+        "-qp_p",
+        "23",
+        "-qp_b",
+        "23",
+        "-an",
+        "-f",
+        "null",
+        "-",
+    ]
+    return run_quiet(cmd, timeout=6.0)
+
+
 def pick_backend(cfg: Optional[Config] = None) -> str:
     """
     Select the best available encoding backend.
@@ -214,9 +252,11 @@ def pick_backend(cfg: Optional[Config] = None) -> str:
 
     if cfg.hw != "auto":
         return cfg.hw
-    # Priority: NVENC > QSV > VAAPI > CPU
+    # Priority: NVENC > AMF > QSV > VAAPI > CPU
     if have_encoder("h264_nvenc") and test_nvenc():
         return "nvenc"
+    if have_encoder("h264_amf") and test_amf():
+        return "amf"
     if have_encoder("h264_qsv") and test_qsv(cfg.vaapi_device):
         return "qsv"
     if have_encoder("h264_vaapi") and test_vaapi(cfg.vaapi_device):
@@ -260,6 +300,40 @@ def video_args_for(backend: str, cfg: Optional[Config] = None) -> List[str]:
             "vbr",
             "-b:v",
             "0",
+        ]
+    if backend == "amf":
+        # AMD AMF encoding
+        # Quality modes: speed, balanced, quality
+        # Map CPU presets to AMF quality modes
+        amf_quality_map = {
+            "ultrafast": "speed",
+            "superfast": "speed",
+            "veryfast": "speed",
+            "faster": "balanced",
+            "fast": "balanced",
+            "medium": "balanced",
+            "slow": "quality",
+            "slower": "quality",
+            "veryslow": "quality",
+        }
+        amf_quality_mode = amf_quality_map.get(cfg.preset, "balanced")
+        return [
+            "-c:v",
+            "h264_amf",
+            "-quality",
+            amf_quality_mode,
+            "-rc",
+            "cqp",  # Constant Quantization Parameter
+            "-qp_i",
+            str(cfg.amf_quality),
+            "-qp_p",
+            str(cfg.amf_quality),
+            "-qp_b",
+            str(cfg.amf_quality),
+            "-profile:v",
+            "high",
+            "-level",
+            "4.1",
         ]
     if backend == "qsv":
         return [

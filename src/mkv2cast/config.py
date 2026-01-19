@@ -100,7 +100,8 @@ class Config:
     vaapi_qp: int = 23
     qsv_quality: int = 23
     nvenc_cq: int = 23  # NVIDIA NVENC constant quality (0-51, lower=better)
-    hw: str = "auto"  # auto, nvenc, qsv, vaapi, cpu
+    amf_quality: int = 23  # AMD AMF quality (0-51, lower=better)
+    hw: str = "auto"  # auto, nvenc, amf, qsv, vaapi, cpu
 
     # Audio track selection
     audio_lang: Optional[str] = None  # Comma-separated language codes (e.g., "fre,fra,fr,eng")
@@ -137,6 +138,9 @@ class Config:
 
     # Internationalization (new)
     lang: Optional[str] = None
+
+    # JSON progress output (new)
+    json_progress: bool = False
 
 
 # Global config instance (set by parse_args in cli.py)

@@ -1,0 +1,15 @@
+[Unit]
+Description=Start mkv2cast watch mode on boot
+Documentation=man:mkv2cast(1)
+Documentation=https://github.com/voldardard/mkv2cast
+
+[Timer]
+# Start 2 minutes after boot
+OnBootSec=2min
+# Start immediately if missed
+Persistent=true
+# Don't wake up the system from suspend
+WakeSystem=false
+
+[Install]
+WantedBy=timers.target

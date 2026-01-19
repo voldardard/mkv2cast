@@ -32,10 +32,13 @@ from mkv2cast.converter import (
     have_encoder,
     pick_backend,
     probe_duration_ms,
+    test_amf,
+    test_nvenc,
 )
 from mkv2cast.history import SQLITE_AVAILABLE, HistoryDB
 from mkv2cast.i18n import _, setup_i18n
 from mkv2cast.integrity import integrity_check as do_integrity_check
+from mkv2cast.json_progress import JSONProgressOutput, parse_ffmpeg_progress_for_json
 from mkv2cast.notifications import (
     check_notification_support,
     notify_interrupted,
@@ -193,6 +196,11 @@ Examples:
     debug_group = parser.add_argument_group(_("Debug/test"))
     debug_group.add_argument("-d", "--debug", action="store_true", help=_("Enable debug output"))
     debug_group.add_argument("-n", "--dryrun", action="store_true", help=_("Dry run"))
+    debug_group.add_argument(
+        "--json-progress",
+        action="store_true",
+        help=_("Output JSON progress for integration with other applications"),
+    )
 
     # Codec decisions
     codec_group = parser.add_argument_group(_("Codec decisions"))
@@ -216,11 +224,12 @@ Examples:
 
     # Hardware acceleration
     hw_group = parser.add_argument_group(_("Hardware acceleration"))
-    hw_group.add_argument("--hw", choices=["auto", "nvenc", "qsv", "vaapi", "cpu"], default="auto")
+    hw_group.add_argument("--hw", choices=["auto", "nvenc", "amf", "qsv", "vaapi", "cpu"], default="auto")
     hw_group.add_argument("--vaapi-device", default="/dev/dri/renderD128")
     hw_group.add_argument("--vaapi-qp", type=int, default=23)
     hw_group.add_argument("--qsv-quality", type=int, default=23)
     hw_group.add_argument("--nvenc-cq", type=int, default=23, help=_("NVENC constant quality (0-51)"))
+    hw_group.add_argument("--amf-quality", type=int, default=23, help=_("AMD AMF quality (0-51)"))
 
     # Audio track selection
     audio_group = parser.add_argument_group(_("Audio track selection"))
@@ -337,6 +346,7 @@ Examples:
         vaapi_qp=parsed_args.vaapi_qp,
         qsv_quality=parsed_args.qsv_quality,
         nvenc_cq=parsed_args.nvenc_cq,
+        amf_quality=parsed_args.amf_quality,
         audio_lang=parsed_args.audio_lang,
         audio_track=parsed_args.audio_track,
         subtitle_lang=parsed_args.subtitle_lang,
@@ -355,6 +365,7 @@ Examples:
         integrity_workers=parsed_args.integrity_workers,
         notify=parsed_args.notify,
         lang=parsed_args.lang,
+        json_progress=parsed_args.json_progress,
     )
 
     single = Path(parsed_args.file).expanduser() if parsed_args.file else None
@@ -839,6 +850,34 @@ def check_requirements() -> int:
     else:
         print("  ○ h264_qsv encoder: not available")
 
+    # Check NVIDIA NVENC
+    try:
+        subprocess.run(["nvidia-smi"], capture_output=True, timeout=5.0, check=True)
+        nvidia_available = True
+    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+        nvidia_available = False
+
+    if nvidia_available:
+        print("  ✓ NVIDIA GPU: detected")
+        if have_encoder("h264_nvenc"):
+            if test_nvenc():
+                print("  ✓ h264_nvenc encoder: available and working")
+            else:
+                print("  ○ h264_nvenc encoder: available but test failed")
+        else:
+            print("  ○ h264_nvenc encoder: not available")
+    else:
+        print("  ○ NVIDIA GPU: not detected")
+
+    # Check AMD AMF
+    if have_encoder("h264_amf"):
+        if test_amf():
+            print("  ✓ h264_amf encoder: available and working")
+        else:
+            print("  ○ h264_amf encoder: available but test failed")
+    else:
+        print("  ○ h264_amf encoder: not available")
+
     print()
     if all_ok:
         print(f"✓ {_('All requirements satisfied')}")
@@ -973,6 +1012,150 @@ def handle_utility_commands(cfg: Config, args: argparse.Namespace) -> Optional[i
 
 
 # -------------------- MAIN --------------------
+
+
+def main_json_progress(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int, bool]:
+    """JSON progress output mode for integration with external tools.
+
+    Outputs structured JSON to stdout for each progress update.
+    """
+    from mkv2cast.config import CFG as global_cfg
+
+    global_cfg.__dict__.update(cfg.__dict__)
+
+    ok, skipped, failed, interrupted_count = 0, 0, 0, 0
+    interrupted = False
+
+    root = Path(".").resolve()
+    targets, _ignored = collect_targets(root, single, cfg)
+    if not targets:
+        json_out = JSONProgressOutput()
+        json_out.start(0, pick_backend(cfg), 1, 1)
+        json_out.complete()
+        return 0, 0, 0, 0, False
+
+    backend = pick_backend(cfg)
+    json_out = JSONProgressOutput()
+
+    # Probe durations for all files
+    for inp in targets:
+        dur_ms = probe_duration_ms(inp)
+        json_out.file_queued(inp, dur_ms)
+
+    json_out.start(len(targets), backend, 1, 1)
+
+    for inp in targets:
+        if is_our_output_or_tmp(str(inp), cfg):
+            continue
+
+        log_path = get_log_path(inp)
+
+        # Integrity check
+        if cfg.integrity_check:
+            json_out.file_checking(inp)
+            check_result = do_integrity_check(inp, True, cfg.stable_wait, cfg.deep_check)
+            json_out.file_check_done(inp)
+            if not check_result:
+                json_out.file_done(inp, skipped=True, error="integrity failed")
+                skipped += 1
+                continue
+
+        try:
+            d = decide_for(inp, cfg)
+        except Exception as e:
+            json_out.file_done(inp, error=str(e))
+            failed += 1
+            continue
+
+        if (not d.need_v) and (not d.need_a) and cfg.skip_when_ok:
+            json_out.file_done(inp, skipped=True)
+            skipped += 1
+            continue
+
+        tag = ""
+        if d.need_v:
+            tag += ".h264"
+        if d.need_a:
+            tag += ".aac"
+        if not tag:
+            tag = ".remux"
+
+        final = inp.parent / f"{inp.stem}{tag}{cfg.suffix}.{cfg.container}"
+        if final.exists():
+            json_out.file_done(inp, output_path=final, skipped=True)
+            skipped += 1
+            continue
+
+        tmp = get_tmp_path(inp, 0, tag, cfg)
+        dur_ms = probe_duration_ms(inp)
+
+        cmd, _stage = build_transcode_cmd(inp, d, backend, tmp, log_path, cfg)
+
+        if cfg.dryrun:
+            json_out.file_done(inp, skipped=True)
+            skipped += 1
+            continue
+
+        json_out.file_encoding_start(inp, dur_ms)
+
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            if proc.stderr is None:
+                raise RuntimeError("Failed to capture stderr")
+
+            for line in proc.stderr:
+                progress_data = parse_ffmpeg_progress_for_json(line)
+                if progress_data:
+                    json_out.file_progress(
+                        inp,
+                        frame=progress_data.get("frame", 0),
+                        fps=progress_data.get("fps", 0.0),
+                        time_ms=progress_data.get("time_ms", 0),
+                        bitrate=progress_data.get("bitrate", ""),
+                        speed=progress_data.get("speed", ""),
+                        size_bytes=progress_data.get("size_bytes", 0),
+                    )
+
+            proc.wait()
+            rc = proc.returncode
+
+        except KeyboardInterrupt:
+            interrupted = True
+            interrupted_count += 1
+            if tmp.exists():
+                tmp.unlink(missing_ok=True)
+            json_out.file_done(inp, error="interrupted")
+            break
+        except Exception as e:
+            failed += 1
+            if tmp.exists():
+                tmp.unlink(missing_ok=True)
+            json_out.file_done(inp, error=str(e))
+            continue
+
+        if rc == 0:
+            try:
+                shutil.move(str(tmp), str(final))
+                ok += 1
+                json_out.file_done(inp, output_path=final)
+            except Exception as e:
+                failed += 1
+                if tmp.exists():
+                    tmp.unlink(missing_ok=True)
+                json_out.file_done(inp, error=f"move failed: {e}")
+        else:
+            failed += 1
+            if tmp.exists():
+                tmp.unlink(missing_ok=True)
+            json_out.file_done(inp, error=f"ffmpeg returned {rc}")
+
+    json_out.complete()
+    return ok, skipped, failed, interrupted_count, interrupted
 
 
 def main_legacy(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int, bool]:
@@ -1372,13 +1555,18 @@ def main() -> int:
     start_time = time.time()
 
     # Choose UI mode:
+    # - JSON progress mode if --json-progress enabled
     # - Pipeline mode with Rich UI if Rich available and --pipeline enabled
     # - Simple Rich mode if Rich available but --no-pipeline
     # - Legacy mode if Rich not available
-    use_pipeline = RICH_AVAILABLE and cfg.pipeline and cfg.progress
-    use_simple_rich = RICH_AVAILABLE and not cfg.pipeline and cfg.progress
+    use_json = cfg.json_progress
+    use_pipeline = RICH_AVAILABLE and cfg.pipeline and cfg.progress and not use_json
+    use_simple_rich = RICH_AVAILABLE and not cfg.pipeline and cfg.progress and not use_json
 
-    if use_pipeline:
+    if use_json:
+        ok, skipped, failed, interrupted_count, was_interrupted = main_json_progress(single, cfg)
+        total_time = fmt_hms(time.time() - start_time)
+    elif use_pipeline:
         ok, skipped, failed, interrupted_count, was_interrupted = main_pipeline(single, cfg)
         total_time = fmt_hms(time.time() - start_time)
         # Summary is printed by main_pipeline

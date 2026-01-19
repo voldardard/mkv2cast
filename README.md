@@ -507,6 +507,48 @@ success, output_path, message = convert_file(
 )
 ```
 
+### JSON Progress Output
+
+For integration with web UIs or monitoring tools, use `--json-progress`:
+
+```bash
+mkv2cast --json-progress movie.mkv
+```
+
+This outputs JSON events to stdout:
+
+```json
+{"version":"1.0","event":"start","overall":{"total_files":1,"backend":"vaapi"}}
+{"version":"1.0","event":"file_start","file":"movie.mkv"}
+{"version":"1.0","event":"progress","files":{"movie.mkv":{"progress_percent":45.2,"fps":120.5,"eta_seconds":30}}}
+{"version":"1.0","event":"file_done","file":"movie.mkv","status":"done"}
+{"version":"1.0","event":"complete"}
+```
+
+### Using JSON Progress in Python
+
+```python
+import json
+import subprocess
+from typing import Generator, Dict, Any
+
+def stream_progress(filepath: str) -> Generator[Dict[str, Any], None, None]:
+    """Stream JSON progress events from mkv2cast."""
+    proc = subprocess.Popen(
+        ["mkv2cast", "--json-progress", filepath],
+        stdout=subprocess.PIPE,
+        text=True
+    )
+    for line in proc.stdout:
+        yield json.loads(line)
+
+# Example: Display progress
+for event in stream_progress("movie.mkv"):
+    if event["event"] == "progress":
+        for filename, data in event.get("files", {}).items():
+            print(f"{filename}: {data['progress_percent']:.1f}%")
+```
+
 ### Analyzing Files
 
 Before converting, you can analyze a file to see what transcoding is needed:
@@ -710,10 +752,12 @@ For detailed API documentation, see the [API Reference](https://voldardard.githu
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--hw BACKEND` | `auto` | Backend: `auto`, `vaapi`, `qsv`, `cpu` |
+| `--hw BACKEND` | `auto` | Backend: `auto`, `nvenc`, `amf`, `qsv`, `vaapi`, `cpu` |
 | `--vaapi-device PATH` | `/dev/dri/renderD128` | VAAPI device |
 | `--vaapi-qp VALUE` | `23` | VAAPI quality |
 | `--qsv-quality VALUE` | `23` | QSV quality |
+| `--nvenc-cq VALUE` | `23` | NVENC constant quality (0-51) |
+| `--amf-quality VALUE` | `23` | AMD AMF quality (0-51) |
 
 ### Integrity Checks
 
@@ -732,6 +776,12 @@ For detailed API documentation, see the [API Reference](https://voldardard.githu
 | `--no-pipeline` | - | Sequential mode |
 | `--encode-workers N` | `0` (auto) | Parallel encoding workers |
 | `--integrity-workers N` | `0` (auto) | Parallel integrity workers |
+
+### JSON Progress Output
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--json-progress` | disabled | Output structured JSON progress |
 
 ### Utility Commands
 

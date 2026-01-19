@@ -372,3 +372,11 @@ msgstr "Dateien entfernt"
 
 msgid "Total removed"
 msgstr "Gesamt entfernt"
+
+# AMD AMF
+msgid "AMD AMF quality (0-51)"
+msgstr "AMD AMF Qualität (0-51)"
+
+# JSON Progress
+msgid "Output JSON progress for integration with other applications"
+msgstr "JSON-Fortschrittsausgabe für Integration mit anderen Anwendungen"

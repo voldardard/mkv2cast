@@ -418,6 +418,114 @@ Here's a complete example that processes files with error handling and logging:
    if __name__ == "__main__":
        sys.exit(main())
 
+JSON Progress Output
+--------------------
+
+For integration with web UIs or monitoring tools, use the ``JSONProgressOutput`` class or the ``--json-progress`` CLI flag:
+
+**CLI Usage:**
+
+.. code-block:: bash
+
+   mkv2cast --json-progress movie.mkv
+
+This outputs JSON events to stdout:
+
+.. code-block:: json
+
+   {"version":"1.0","event":"start","overall":{"total_files":1,"backend":"vaapi"}}
+   {"version":"1.0","event":"file_start","file":"movie.mkv"}
+   {"version":"1.0","event":"progress","files":{"movie.mkv":{"progress_percent":45.2,"fps":120.5}}}
+   {"version":"1.0","event":"file_done","file":"movie.mkv","status":"done"}
+   {"version":"1.0","event":"complete"}
+
+**Python Usage:**
+
+.. code-block:: python
+
+   import json
+   import subprocess
+   from typing import Generator, Dict, Any
+
+   def stream_progress(filepath: str) -> Generator[Dict[str, Any], None, None]:
+       """Stream JSON progress events from mkv2cast."""
+       proc = subprocess.Popen(
+           ["mkv2cast", "--json-progress", filepath],
+           stdout=subprocess.PIPE,
+           text=True
+       )
+       for line in proc.stdout:
+           yield json.loads(line)
+
+   # Example: Display progress
+   for event in stream_progress("movie.mkv"):
+       if event["event"] == "progress":
+           for filename, data in event.get("files", {}).items():
+               percent = data.get("progress_percent", 0)
+               fps = data.get("fps", 0)
+               eta = data.get("eta_seconds", 0)
+               print(f"{filename}: {percent:.1f}% @ {fps:.1f}fps, ETA: {eta:.0f}s")
+
+**Using JSONProgressOutput Directly:**
+
+.. code-block:: python
+
+   from mkv2cast import JSONProgressOutput
+   import sys
+
+   # Create a JSON progress output
+   json_out = JSONProgressOutput(stream=sys.stdout)
+
+   # Signal start
+   json_out.start(total_files=5, backend="vaapi", encode_workers=1, integrity_workers=2)
+
+   # Update file progress
+   from pathlib import Path
+   filepath = Path("movie.mkv")
+
+   json_out.file_queued(filepath, duration_ms=3600000)  # 1 hour
+   json_out.file_encoding_start(filepath)
+   json_out.file_progress(
+       filepath,
+       frame=1000,
+       fps=120.5,
+       time_ms=60000,  # 1 minute
+       bitrate="2500kbits/s",
+       speed="2.5x"
+   )
+   json_out.file_done(filepath, output_path=Path("movie.h264.cast.mkv"))
+   json_out.complete()
+
+**JSON Event Types:**
+
+- ``start``: Processing started, includes total files and backend info
+- ``file_checking``: Integrity check started for a file
+- ``file_start``: Encoding started for a file
+- ``progress``: Progress update with percentage, FPS, ETA
+- ``file_done``: File processing completed (done, skipped, or failed)
+- ``complete``: All processing finished
+
+**Progress Data Fields:**
+
+.. code-block:: python
+
+   {
+       "filename": "movie.mkv",
+       "filepath": "/path/to/movie.mkv",
+       "status": "encoding",  # queued, checking, encoding, done, skipped, failed
+       "progress_percent": 45.2,
+       "current_time_ms": 1620000,
+       "duration_ms": 3600000,
+       "fps": 120.5,
+       "speed": "2.5x",
+       "bitrate": "2500kbits/s",
+       "eta_seconds": 30.5,
+       "started_at": 1704067200.0,
+       "finished_at": null,
+       "output_path": null,
+       "error": null
+   }
+
 API Reference
 ------------
 

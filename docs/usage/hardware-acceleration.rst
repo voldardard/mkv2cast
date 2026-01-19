@@ -7,6 +7,7 @@ Supported Backends
 ------------------
 
 - **NVENC** - NVIDIA GPU encoding (fastest)
+- **AMF** - AMD GPU encoding (AMD VCE/VCN)
 - **QSV** - Intel Quick Sync Video
 - **VAAPI** - Video Acceleration API (AMD, Intel)
 - **CPU** - Software encoding with libx264 (most compatible)
@@ -20,7 +21,7 @@ Backend Selection
 
    mkv2cast --hw auto
 
-The auto mode tests backends in order: NVENC → QSV → VAAPI → CPU
+The auto mode tests backends in order: NVENC → AMF → QSV → VAAPI → CPU
 
 **Force specific backend:**
 
@@ -159,6 +160,8 @@ Approximate encoding speed on typical hardware:
 +==========+=============+==================+
 | NVENC    | 300-500     | Good             |
 +----------+-------------+------------------+
+| AMF      | 250-450     | Good             |
++----------+-------------+------------------+
 | QSV      | 200-400     | Good             |
 +----------+-------------+------------------+
 | VAAPI    | 150-300     | Good             |
@@ -176,6 +179,12 @@ Troubleshooting
 1. Check NVIDIA driver: ``nvidia-smi``
 2. Check encoder: ``ffmpeg -encoders | grep nvenc``
 3. Install CUDA toolkit if needed
+
+**AMF not detected:**
+
+1. Check AMD GPU: ``lspci | grep -i amd``
+2. Check encoder: ``ffmpeg -encoders | grep amf``
+3. Ensure FFmpeg is compiled with AMF support
 
 **VAAPI not detected:**
 
