@@ -46,8 +46,7 @@ class TestSendNotification:
         result = send_notification("Test", "Message")
         assert result is False
 
-    @pytest.mark.skipif(not shutil.which("notify-send"),
-                       reason="notify-send not available")
+    @pytest.mark.skipif(not shutil.which("notify-send"), reason="notify-send not available")
     def test_send_notification_with_notify_send(self):
         """Test notification with notify-send (if available)."""
         from mkv2cast.notifications import send_notification
@@ -67,6 +66,7 @@ class TestNotificationHelpers:
 
         # Mock send_notification to capture args
         captured = []
+
         def mock_send(title, message, **kwargs):
             captured.append((title, message, kwargs))
             return True
@@ -87,6 +87,7 @@ class TestNotificationHelpers:
         import mkv2cast.notifications
 
         captured = []
+
         def mock_send(title, message, **kwargs):
             captured.append((title, message, kwargs))
             return True
@@ -107,6 +108,7 @@ class TestNotificationHelpers:
         import mkv2cast.notifications
 
         captured = []
+
         def mock_send(title, message, **kwargs):
             captured.append((title, message, kwargs))
             return True
@@ -128,6 +130,7 @@ class TestNotificationHelpers:
         import mkv2cast.notifications
 
         captured = []
+
         def mock_send(title, message, **kwargs):
             captured.append((title, message, kwargs))
             return True
@@ -151,6 +154,7 @@ class TestNotificationUrgency:
         import mkv2cast.notifications
 
         captured = []
+
         def mock_send(title, message, **kwargs):
             captured.append(kwargs)
             return True
@@ -158,6 +162,7 @@ class TestNotificationUrgency:
         monkeypatch.setattr(mkv2cast.notifications, "send_notification", mock_send)
 
         from mkv2cast.notifications import notify_success
+
         notify_success(1, "00:05:00")
 
         assert captured[0].get("urgency") == "normal"
@@ -167,6 +172,7 @@ class TestNotificationUrgency:
         import mkv2cast.notifications
 
         captured = []
+
         def mock_send(title, message, **kwargs):
             captured.append(kwargs)
             return True
@@ -174,6 +180,7 @@ class TestNotificationUrgency:
         monkeypatch.setattr(mkv2cast.notifications, "send_notification", mock_send)
 
         from mkv2cast.notifications import notify_failure
+
         notify_failure(1)
 
         assert captured[0].get("urgency") == "critical"

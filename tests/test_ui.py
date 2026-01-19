@@ -78,15 +78,7 @@ class TestLegacyUI:
         """Test UIState dataclass."""
         from mkv2cast.ui.legacy_ui import UIState
 
-        state = UIState(
-            stage="ENCODE",
-            pct=50,
-            cur=1,
-            total=3,
-            base="video.mkv",
-            eta="00:05:00",
-            speed="2.5x"
-        )
+        state = UIState(stage="ENCODE", pct=50, cur=1, total=3, base="video.mkv", eta="00:05:00", speed="2.5x")
 
         assert state.stage == "ENCODE"
         assert state.pct == 50

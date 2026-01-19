@@ -22,6 +22,7 @@ from mkv2cast.config import CFG, Config
 
 # -------------------- UTILITY FUNCTIONS --------------------
 
+
 def run_quiet(cmd: List[str], timeout: float = 10.0) -> bool:
     """Run a command quietly, return True if successful."""
     try:
@@ -33,12 +34,7 @@ def run_quiet(cmd: List[str], timeout: float = 10.0) -> bool:
 
 def ffprobe_json(path: Path) -> Dict[str, Any]:
     """Run ffprobe and return JSON output."""
-    cmd = [
-        "ffprobe", "-v", "error",
-        "-print_format", "json",
-        "-show_streams", "-show_format",
-        str(path)
-    ]
+    cmd = ["ffprobe", "-v", "error", "-print_format", "json", "-show_streams", "-show_format", str(path)]
     out = subprocess.check_output(cmd)
     result: Dict[str, Any] = json.loads(out)
     return result
@@ -47,8 +43,16 @@ def ffprobe_json(path: Path) -> Dict[str, Any]:
 def probe_duration_ms(path: Path, debug: bool = False) -> int:
     """Get video duration in milliseconds."""
     try:
-        cmd = ["ffprobe", "-v", "error", "-of", "json",
-               "-show_entries", "format=duration:stream=codec_type,duration", str(path)]
+        cmd = [
+            "ffprobe",
+            "-v",
+            "error",
+            "-of",
+            "json",
+            "-show_entries",
+            "format=duration:stream=codec_type,duration",
+            str(path),
+        ]
         j = json.loads(subprocess.check_output(cmd))
         dur = None
         if "format" in j and j["format"].get("duration"):
@@ -77,15 +81,11 @@ def file_size(path: Path) -> int:
 
 # -------------------- BACKEND SELECTION --------------------
 
+
 def have_encoder(name: str) -> bool:
     """Check if ffmpeg has the specified encoder."""
     try:
-        result = subprocess.run(
-            ["ffmpeg", "-hide_banner", "-encoders"],
-            capture_output=True,
-            text=True,
-            timeout=4.0
-        )
+        result = subprocess.run(["ffmpeg", "-hide_banner", "-encoders"], capture_output=True, text=True, timeout=4.0)
         # Search for the encoder name in the output
         for line in result.stdout.split("\n"):
             # Format is like: " V....D libx264    description..."
@@ -102,11 +102,30 @@ def test_qsv(vaapi_device: str = "/dev/dri/renderD128") -> bool:
     if not Path(vaapi_device).exists():
         return False
     cmd = [
-        "ffmpeg", "-hide_banner", "-loglevel", "error",
-        "-init_hw_device", f"qsv=hw:{vaapi_device}", "-filter_hw_device", "hw",
-        "-f", "lavfi", "-i", "testsrc2=size=128x128:rate=30", "-t", "0.2",
-        "-vf", "format=nv12", "-c:v", "h264_qsv", "-global_quality", "35",
-        "-an", "-f", "null", "-"
+        "ffmpeg",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-init_hw_device",
+        f"qsv=hw:{vaapi_device}",
+        "-filter_hw_device",
+        "hw",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc2=size=128x128:rate=30",
+        "-t",
+        "0.2",
+        "-vf",
+        "format=nv12",
+        "-c:v",
+        "h264_qsv",
+        "-global_quality",
+        "35",
+        "-an",
+        "-f",
+        "null",
+        "-",
     ]
     return run_quiet(cmd, timeout=6.0)
 
@@ -116,11 +135,28 @@ def test_vaapi(vaapi_device: str = "/dev/dri/renderD128") -> bool:
     if not Path(vaapi_device).exists():
         return False
     cmd = [
-        "ffmpeg", "-hide_banner", "-loglevel", "error",
-        "-vaapi_device", vaapi_device,
-        "-f", "lavfi", "-i", "testsrc2=size=128x128:rate=30", "-t", "0.2",
-        "-vf", "format=nv12,hwupload", "-c:v", "h264_vaapi", "-qp", "35",
-        "-an", "-f", "null", "-"
+        "ffmpeg",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-vaapi_device",
+        vaapi_device,
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc2=size=128x128:rate=30",
+        "-t",
+        "0.2",
+        "-vf",
+        "format=nv12,hwupload",
+        "-c:v",
+        "h264_vaapi",
+        "-qp",
+        "35",
+        "-an",
+        "-f",
+        "null",
+        "-",
     ]
     return run_quiet(cmd, timeout=6.0)
 
@@ -154,52 +190,71 @@ def video_args_for(backend: str, cfg: Optional[Config] = None) -> List[str]:
 
     if backend == "qsv":
         return [
-            "-vf", "format=nv12",
-            "-c:v", "h264_qsv",
-            "-global_quality", str(cfg.qsv_quality),
-            "-profile:v", "high",
-            "-level", "4.1"
+            "-vf",
+            "format=nv12",
+            "-c:v",
+            "h264_qsv",
+            "-global_quality",
+            str(cfg.qsv_quality),
+            "-profile:v",
+            "high",
+            "-level",
+            "4.1",
         ]
     if backend == "vaapi":
         return [
-            "-vaapi_device", cfg.vaapi_device,
-            "-vf", "format=nv12,hwupload",
-            "-c:v", "h264_vaapi",
-            "-qp", str(cfg.vaapi_qp),
-            "-profile:v", "high",
-            "-level", "4.1"
+            "-vaapi_device",
+            cfg.vaapi_device,
+            "-vf",
+            "format=nv12,hwupload",
+            "-c:v",
+            "h264_vaapi",
+            "-qp",
+            str(cfg.vaapi_qp),
+            "-profile:v",
+            "high",
+            "-level",
+            "4.1",
         ]
     if backend == "cpu":
         return [
-            "-c:v", "libx264",
-            "-preset", cfg.preset,
-            "-crf", str(cfg.crf),
-            "-pix_fmt", "yuv420p",
-            "-profile:v", "high",
-            "-level", "4.1"
+            "-c:v",
+            "libx264",
+            "-preset",
+            cfg.preset,
+            "-crf",
+            str(cfg.crf),
+            "-pix_fmt",
+            "yuv420p",
+            "-profile:v",
+            "high",
+            "-level",
+            "4.1",
         ]
     raise RuntimeError(f"Unknown backend: {backend}")
 
 
 # -------------------- DECISION LOGIC --------------------
 
+
 @dataclass
 class Decision:
     """Decision about what transcoding is needed for a file."""
-    need_v: bool           # Need to transcode video
-    need_a: bool           # Need to transcode audio
-    aidx: int              # Audio stream index to use (-1 if none)
-    add_silence: bool      # Add silent audio track
-    reason_v: str          # Reason for video decision
-    vcodec: str            # Source video codec
-    vpix: str              # Source pixel format
-    vbit: int              # Source bit depth
-    vhdr: bool             # Is HDR content
-    vprof: str             # Video profile
-    vlevel: int            # Video level
-    acodec: str            # Source audio codec
-    ach: int               # Audio channels
-    format_name: str       # Container format name
+
+    need_v: bool  # Need to transcode video
+    need_a: bool  # Need to transcode audio
+    aidx: int  # Audio stream index to use (-1 if none)
+    add_silence: bool  # Add silent audio track
+    reason_v: str  # Reason for video decision
+    vcodec: str  # Source video codec
+    vpix: str  # Source pixel format
+    vbit: int  # Source bit depth
+    vhdr: bool  # Is HDR content
+    vprof: str  # Video profile
+    vlevel: int  # Video level
+    acodec: str  # Source audio codec
+    ach: int  # Audio channels
+    format_name: str  # Container format name
 
 
 def parse_bitdepth_from_pix(pix: str) -> int:
@@ -217,12 +272,12 @@ def is_audio_description(title: str) -> bool:
     """Check if audio track is an audio description track."""
     t = (title or "").lower()
     return (
-        "audio description" in t or
-        "audio-description" in t or
-        "audiodescription" in t or
-        "visual impaired" in t or
-        " v.i" in t or
-        " ad" in t
+        "audio description" in t
+        or "audio-description" in t
+        or "audiodescription" in t
+        or "visual impaired" in t
+        or " v.i" in t
+        or " ad" in t
     )
 
 
@@ -286,10 +341,13 @@ def decide_for(path: Path, cfg: Optional[Config] = None) -> Decision:
         video_ok = False
         reason_v = "--force-h264"
     elif vcodec == "h264":
-        if (vbit <= 8 and vpix in {"yuv420p", "yuvj420p"} and
-            (not vhdr) and
-            vprof not in {"high 10", "high10", "high 4:2:2", "high 4:4:4"} and
-            (vlevel == 0 or vlevel <= 41)):
+        if (
+            vbit <= 8
+            and vpix in {"yuv420p", "yuvj420p"}
+            and (not vhdr)
+            and vprof not in {"high 10", "high10", "high 4:2:2", "high 4:4:4"}
+            and (vlevel == 0 or vlevel <= 41)
+        ):
             video_ok = True
             reason_v = "H264 8-bit SDR"
         else:
@@ -328,13 +386,20 @@ def decide_for(path: Path, cfg: Optional[Config] = None) -> Decision:
         aidx=aidx,
         add_silence=add_silence,
         reason_v=reason_v,
-        vcodec=vcodec, vpix=vpix, vbit=vbit, vhdr=vhdr, vprof=vprof, vlevel=vlevel,
-        acodec=acodec, ach=ach,
-        format_name=format_name
+        vcodec=vcodec,
+        vpix=vpix,
+        vbit=vbit,
+        vhdr=vhdr,
+        vprof=vprof,
+        vlevel=vlevel,
+        acodec=acodec,
+        ach=ach,
+        format_name=format_name,
     )
 
 
 # -------------------- FFMPEG COMMAND BUILDING --------------------
+
 
 def build_transcode_cmd(
     inp: Path,
@@ -342,7 +407,7 @@ def build_transcode_cmd(
     backend: str,
     tmp_out: Path,
     log_path: Optional[Path] = None,
-    cfg: Optional[Config] = None
+    cfg: Optional[Config] = None,
 ) -> Tuple[List[str], str]:
     """
     Build ffmpeg transcoding command.
@@ -420,6 +485,7 @@ def build_transcode_cmd(
 
 # -------------------- HIGH-LEVEL CONVERSION --------------------
 
+
 def get_output_tag(decision: Decision) -> str:
     """Get the output filename tag based on decision."""
     tag = ""
@@ -437,7 +503,7 @@ def convert_file(
     cfg: Optional[Config] = None,
     backend: Optional[str] = None,
     output_dir: Optional[Path] = None,
-    log_path: Optional[Path] = None
+    log_path: Optional[Path] = None,
 ) -> Tuple[bool, Optional[Path], str]:
     """
     Convert a single MKV file.

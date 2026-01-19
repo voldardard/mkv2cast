@@ -51,6 +51,7 @@ def fmt_hms(seconds: float) -> str:
 @dataclass
 class UIState:
     """State for legacy UI rendering."""
+
     stage: str
     pct: int
     cur: int

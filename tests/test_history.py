@@ -15,8 +15,7 @@ class TestHistoryDB:
         HistoryDB(temp_state_dir)
 
         # Should create either SQLite DB or JSONL file
-        assert (temp_state_dir / "history.db").exists() or \
-               (temp_state_dir / "history.log").exists()
+        assert (temp_state_dir / "history.db").exists() or (temp_state_dir / "history.log").exists()
 
     def test_record_start(self, temp_state_dir):
         """Test recording conversion start."""
@@ -24,11 +23,7 @@ class TestHistoryDB:
 
         db = HistoryDB(temp_state_dir)
 
-        entry_id = db.record_start(
-            input_path=Path("/test/video.mkv"),
-            backend="cpu",
-            input_size=1000000
-        )
+        entry_id = db.record_start(input_path=Path("/test/video.mkv"), backend="cpu", input_size=1000000)
 
         assert entry_id > 0
 
@@ -43,18 +38,14 @@ class TestHistoryDB:
 
         db = HistoryDB(temp_state_dir)
 
-        entry_id = db.record_start(
-            input_path=Path("/test/video.mkv"),
-            backend="cpu",
-            input_size=1000000
-        )
+        entry_id = db.record_start(input_path=Path("/test/video.mkv"), backend="cpu", input_size=1000000)
 
         db.record_finish(
             entry_id=entry_id,
             output_path=Path("/test/video.h264.cast.mkv"),
             status="done",
             encode_time=120.5,
-            output_size=800000
+            output_size=800000,
         )
 
         recent = db.get_recent(1)
@@ -67,11 +58,7 @@ class TestHistoryDB:
 
         db = HistoryDB(temp_state_dir)
 
-        db.record_skip(
-            input_path=Path("/test/video.mkv"),
-            reason="output exists",
-            backend="cpu"
-        )
+        db.record_skip(input_path=Path("/test/video.mkv"), reason="output exists", backend="cpu")
 
         recent = db.get_recent(1)
         assert len(recent) == 1
@@ -85,11 +72,7 @@ class TestHistoryDB:
 
         # Add multiple entries
         for i in range(10):
-            db.record_skip(
-                input_path=Path(f"/test/video{i}.mkv"),
-                reason="test",
-                backend="cpu"
-            )
+            db.record_skip(input_path=Path(f"/test/video{i}.mkv"), reason="test", backend="cpu")
 
         recent = db.get_recent(5)
         assert len(recent) == 5
@@ -106,8 +89,7 @@ class TestHistoryDB:
         # Add various conversions
         for i in range(3):
             entry_id = db.record_start(Path(f"/test/done{i}.mkv"), "cpu", 1000000)
-            db.record_finish(entry_id, Path(f"/test/done{i}.cast.mkv"), "done",
-                           encode_time=60, output_size=800000)
+            db.record_finish(entry_id, Path(f"/test/done{i}.cast.mkv"), "done", encode_time=60, output_size=800000)
 
         for i in range(2):
             entry_id = db.record_start(Path(f"/test/fail{i}.mkv"), "cpu", 1000000)
@@ -147,6 +129,7 @@ class TestHistoryDBFallback:
         """Test that JSONL format works."""
         # Force JSONL by patching SQLITE_AVAILABLE
         import mkv2cast.history
+
         monkeypatch.setattr(mkv2cast.history, "SQLITE_AVAILABLE", False)
 
         from mkv2cast.history import HistoryDB
@@ -162,6 +145,7 @@ class TestHistoryDBFallback:
 
         # Check content is JSON
         import json
+
         lines = log_path.read_text().strip().split("\n")
         for line in lines:
             json.loads(line)  # Should not raise

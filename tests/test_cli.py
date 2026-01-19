@@ -190,6 +190,7 @@ class TestPathFunctions:
         # Mock APP_DIRS
         import mkv2cast.cli
         from mkv2cast.cli import get_log_path
+
         mkv2cast.cli.APP_DIRS = {"logs": tmp_path / "logs"}
 
         input_file = Path("/videos/movie.mkv")
@@ -204,6 +205,7 @@ class TestPathFunctions:
         import mkv2cast.cli
         from mkv2cast.cli import get_tmp_path
         from mkv2cast.config import Config
+
         mkv2cast.cli.APP_DIRS = {"tmp": tmp_path / "tmp"}
 
         cfg = Config()
@@ -256,13 +258,9 @@ class TestParseArgs:
         """Test parse_args with various options."""
         from mkv2cast.cli import parse_args
 
-        monkeypatch.setattr(sys, "argv", [
-            "mkv2cast",
-            "--no-recursive",
-            "--hw", "cpu",
-            "--crf", "25",
-            "--suffix", ".converted"
-        ])
+        monkeypatch.setattr(
+            sys, "argv", ["mkv2cast", "--no-recursive", "--hw", "cpu", "--crf", "25", "--suffix", ".converted"]
+        )
         cfg, single = parse_args()
 
         assert cfg.recursive is False

@@ -226,10 +226,20 @@ class TestGetOutputTag:
         from mkv2cast.converter import Decision, get_output_tag
 
         decision = Decision(
-            need_v=True, need_a=False, aidx=0, add_silence=False,
-            reason_v="test", vcodec="hevc", vpix="yuv420p", vbit=8,
-            vhdr=False, vprof="main", vlevel=51, acodec="aac", ach=2,
-            format_name="matroska"
+            need_v=True,
+            need_a=False,
+            aidx=0,
+            add_silence=False,
+            reason_v="test",
+            vcodec="hevc",
+            vpix="yuv420p",
+            vbit=8,
+            vhdr=False,
+            vprof="main",
+            vlevel=51,
+            acodec="aac",
+            ach=2,
+            format_name="matroska",
         )
 
         tag = get_output_tag(decision)
@@ -240,10 +250,20 @@ class TestGetOutputTag:
         from mkv2cast.converter import Decision, get_output_tag
 
         decision = Decision(
-            need_v=False, need_a=True, aidx=0, add_silence=False,
-            reason_v="", vcodec="h264", vpix="yuv420p", vbit=8,
-            vhdr=False, vprof="high", vlevel=41, acodec="ac3", ach=6,
-            format_name="matroska"
+            need_v=False,
+            need_a=True,
+            aidx=0,
+            add_silence=False,
+            reason_v="",
+            vcodec="h264",
+            vpix="yuv420p",
+            vbit=8,
+            vhdr=False,
+            vprof="high",
+            vlevel=41,
+            acodec="ac3",
+            ach=6,
+            format_name="matroska",
         )
 
         tag = get_output_tag(decision)
@@ -254,10 +274,20 @@ class TestGetOutputTag:
         from mkv2cast.converter import Decision, get_output_tag
 
         decision = Decision(
-            need_v=True, need_a=True, aidx=0, add_silence=False,
-            reason_v="test", vcodec="hevc", vpix="yuv420p", vbit=8,
-            vhdr=False, vprof="main", vlevel=51, acodec="ac3", ach=6,
-            format_name="matroska"
+            need_v=True,
+            need_a=True,
+            aidx=0,
+            add_silence=False,
+            reason_v="test",
+            vcodec="hevc",
+            vpix="yuv420p",
+            vbit=8,
+            vhdr=False,
+            vprof="main",
+            vlevel=51,
+            acodec="ac3",
+            ach=6,
+            format_name="matroska",
         )
 
         tag = get_output_tag(decision)
@@ -268,10 +298,20 @@ class TestGetOutputTag:
         from mkv2cast.converter import Decision, get_output_tag
 
         decision = Decision(
-            need_v=False, need_a=False, aidx=0, add_silence=False,
-            reason_v="", vcodec="h264", vpix="yuv420p", vbit=8,
-            vhdr=False, vprof="high", vlevel=41, acodec="aac", ach=2,
-            format_name="matroska"
+            need_v=False,
+            need_a=False,
+            aidx=0,
+            add_silence=False,
+            reason_v="",
+            vcodec="h264",
+            vpix="yuv420p",
+            vbit=8,
+            vhdr=False,
+            vprof="high",
+            vlevel=41,
+            acodec="aac",
+            ach=2,
+            format_name="matroska",
         )
 
         tag = get_output_tag(decision)

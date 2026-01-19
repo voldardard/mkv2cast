@@ -67,9 +67,8 @@ def check_ffprobe_valid(path: Path, timeout: float = 8.0) -> bool:
         True if ffprobe reports valid duration.
     """
     return run_quiet(
-        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
-         "-of", "default=nw=1:nk=1", str(path)],
-        timeout=timeout
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", str(path)],
+        timeout=timeout,
     )
 
 
@@ -77,7 +76,7 @@ def check_deep_decode(
     path: Path,
     log_path: Optional[Path] = None,
     progress_callback: Optional[Callable[[int, str], None]] = None,
-    dur_ms: int = 0
+    dur_ms: int = 0,
 ) -> bool:
     """
     Perform deep decode verification by decoding the entire video stream.
@@ -97,10 +96,7 @@ def check_deep_decode(
         with log_path.open("a", encoding="utf-8", errors="replace") as lf:
             lf.write("DEEP_CHECK: decode video stream\n")
 
-    cmd = [
-        "ffmpeg", "-hide_banner", "-loglevel", "error",
-        "-i", str(path), "-map", "0:v:0", "-f", "null", "-"
-    ]
+    cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", str(path), "-map", "0:v:0", "-f", "null", "-"]
 
     try:
         result = subprocess.run(cmd, capture_output=True, timeout=3600)  # 1 hour timeout
@@ -117,7 +113,7 @@ def integrity_check(
     stable_wait: int = 3,
     deep_check: bool = False,
     log_path: Optional[Path] = None,
-    progress_callback: Optional[Callable[[str, int, str], None]] = None
+    progress_callback: Optional[Callable[[str, int, str], None]] = None,
 ) -> Tuple[bool, float]:
     """
     Perform complete integrity check on a file.

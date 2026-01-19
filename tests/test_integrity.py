@@ -149,10 +149,10 @@ class TestIntegrityCheck:
         from mkv2cast import integrity
 
         # Patch the minimum file size check since test files are small
-        def patched_check(path, enabled=True, stable_wait=3, deep_check=False,
-                          log_path=None, progress_callback=None):
+        def patched_check(path, enabled=True, stable_wait=3, deep_check=False, log_path=None, progress_callback=None):
             # Skip stable_wait for test and don't check minimum file size
             import time
+
             start = time.time()
             if not enabled:
                 return True, 0
@@ -161,12 +161,7 @@ class TestIntegrityCheck:
                 return False, time.time() - start
             return True, time.time() - start
 
-        success, elapsed = patched_check(
-            test_sample_mkv,
-            enabled=True,
-            stable_wait=0,
-            deep_check=False
-        )
+        success, elapsed = patched_check(test_sample_mkv, enabled=True, stable_wait=0, deep_check=False)
         assert success is True
         assert elapsed >= 0
 
@@ -178,16 +173,12 @@ class TestIntegrityCheck:
         test_file.write_bytes(b"x" * 2000000)  # 2MB
 
         callbacks = []
+
         def callback(stage, pct, msg):
             callbacks.append((stage, pct, msg))
 
         # This will fail at ffprobe stage but callback should be called
-        success, _ = integrity_check(
-            test_file,
-            enabled=True,
-            stable_wait=0,
-            progress_callback=callback
-        )
+        success, _ = integrity_check(test_file, enabled=True, stable_wait=0, progress_callback=callback)
 
         assert len(callbacks) > 0
         assert any(cb[0] == "CHECK" for cb in callbacks)

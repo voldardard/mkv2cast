@@ -77,16 +77,14 @@ def setup_i18n(lang: Optional[str] = None) -> Callable[[str], str]:
 
     try:
         translation = gettext.translation(
-            "mkv2cast",
-            localedir=locales_dir,
-            languages=[lang, DEFAULT_LANGUAGE],
-            fallback=True
+            "mkv2cast", localedir=locales_dir, languages=[lang, DEFAULT_LANGUAGE], fallback=True
         )
         _current_translation = translation.gettext
     except Exception:
         # Fallback to identity function
         def identity_fn(x: str) -> str:
             return x
+
         _current_translation = identity_fn
 
     return _current_translation if _current_translation else (lambda x: x)
@@ -147,7 +145,6 @@ TRANSLATION_CATALOG = [
     "Skipped: {reason}",
     "No MKV files to process.",
     "Backend selected: {backend}",
-
     # Progress
     "Checking integrity...",
     "Encoding...",
@@ -155,7 +152,6 @@ TRANSLATION_CATALOG = [
     "Done",
     "Failed",
     "Skipped",
-
     # Summary
     "Summary",
     "Total files seen",
@@ -164,19 +160,16 @@ TRANSLATION_CATALOG = [
     "Failed",
     "Interrupted",
     "Total time",
-
     # Notifications
     "mkv2cast - Conversion Complete",
     "Successfully converted {count} file(s)",
     "mkv2cast - Conversion Failed",
     "Failed to convert {count} file(s)",
-
     # Errors
     "File not found: {path}",
     "Integrity check failed",
     "Output already exists",
     "ffmpeg error (rc={rc})",
-
     # Help texts
     "Smart MKV to Chromecast-compatible converter with hardware acceleration",
     "Process all MKV files in current directory",

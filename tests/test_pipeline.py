@@ -22,6 +22,7 @@ class TestPipelineOrchestrator:
     def mock_config(self):
         """Create a mock config."""
         from mkv2cast.config import Config
+
         cfg = Config()
         cfg.integrity_check = False
         cfg.skip_when_ok = True
@@ -142,11 +143,7 @@ class TestIntegrityCheckWithProgress:
         cfg.integrity_check = False
 
         success, elapsed = integrity_check_with_progress(
-            Path("/fake/path.mkv"),
-            mock_ui,
-            worker_id=0,
-            filename="path.mkv",
-            cfg=cfg
+            Path("/fake/path.mkv"), mock_ui, worker_id=0, filename="path.mkv", cfg=cfg
         )
 
         assert success is True

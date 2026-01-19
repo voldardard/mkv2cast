@@ -22,6 +22,7 @@ def _has_plyer() -> bool:
     """Check if plyer is available."""
     try:
         from plyer import notification  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -36,7 +37,7 @@ def send_notification(
     message: str,
     urgency: Literal["low", "normal", "critical"] = "normal",
     icon: str = "video-x-generic",
-    timeout: int = 10
+    timeout: int = 10,
 ) -> bool:
     """
     Send a desktop notification.
@@ -59,12 +60,16 @@ def send_notification(
         try:
             cmd = [
                 "notify-send",
-                "--urgency", urgency,
-                "--app-name", "mkv2cast",
-                "--icon", icon,
-                "--expire-time", str(timeout * 1000),  # Convert to ms
+                "--urgency",
+                urgency,
+                "--app-name",
+                "mkv2cast",
+                "--icon",
+                icon,
+                "--expire-time",
+                str(timeout * 1000),  # Convert to ms
                 title,
-                message
+                message,
             ]
             subprocess.run(cmd, check=True, capture_output=True, timeout=5)
             return True
@@ -75,12 +80,13 @@ def send_notification(
     if PLYER_AVAILABLE:
         try:
             from plyer import notification
+
             notification.notify(
                 title=title,
                 message=message,
                 app_name="mkv2cast",
                 app_icon=icon if icon.startswith("/") else None,
-                timeout=timeout
+                timeout=timeout,
             )
             return True
         except Exception:
@@ -105,17 +111,9 @@ def notify_success(converted_count: int, total_time: str) -> bool:
     if converted_count == 1:
         message = _("Successfully converted 1 file in {time}").format(time=total_time)
     else:
-        message = _("Successfully converted {count} files in {time}").format(
-            count=converted_count,
-            time=total_time
-        )
+        message = _("Successfully converted {count} files in {time}").format(count=converted_count, time=total_time)
 
-    return send_notification(
-        title=title,
-        message=message,
-        urgency="normal",
-        icon="dialog-information"
-    )
+    return send_notification(title=title, message=message, urgency="normal", icon="dialog-information")
 
 
 def notify_failure(failed_count: int, error_summary: Optional[str] = None) -> bool:
@@ -139,12 +137,7 @@ def notify_failure(failed_count: int, error_summary: Optional[str] = None) -> bo
     if error_summary:
         message += f"\n{error_summary}"
 
-    return send_notification(
-        title=title,
-        message=message,
-        urgency="critical",
-        icon="dialog-error"
-    )
+    return send_notification(title=title, message=message, urgency="critical", icon="dialog-error")
 
 
 def notify_partial(ok_count: int, failed_count: int, skipped_count: int, total_time: str) -> bool:
@@ -176,12 +169,7 @@ def notify_partial(ok_count: int, failed_count: int, skipped_count: int, total_t
     urgency: Literal["low", "normal", "critical"] = "normal" if failed_count == 0 else "critical"
     icon = "dialog-information" if failed_count == 0 else "dialog-warning"
 
-    return send_notification(
-        title=title,
-        message=message,
-        urgency=urgency,
-        icon=icon
-    )
+    return send_notification(title=title, message=message, urgency=urgency, icon=icon)
 
 
 def notify_interrupted() -> bool:
@@ -190,7 +178,7 @@ def notify_interrupted() -> bool:
         title=_("mkv2cast - Interrupted"),
         message=_("Processing was interrupted by user"),
         urgency="normal",
-        icon="dialog-warning"
+        icon="dialog-warning",
     )
 
 

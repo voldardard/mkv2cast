@@ -14,6 +14,7 @@ from typing import Dict, List, Optional
 # SQLite support (usually available, but check anyway)
 try:
     import sqlite3
+
     SQLITE_AVAILABLE = True
 except ImportError:
     SQLITE_AVAILABLE = False
@@ -35,7 +36,7 @@ class HistoryDB:
     def _init_sqlite(self) -> None:
         """Initialize SQLite database."""
         conn = sqlite3.connect(str(self._db_path))
-        conn.execute('''
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS conversions (
                 id INTEGER PRIMARY KEY,
                 input_path TEXT NOT NULL,
@@ -51,9 +52,9 @@ class HistoryDB:
                 encode_time_s REAL,
                 integrity_time_s REAL
             )
-        ''')
-        conn.execute('CREATE INDEX IF NOT EXISTS idx_started ON conversions(started_at)')
-        conn.execute('CREATE INDEX IF NOT EXISTS idx_status ON conversions(status)')
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_started ON conversions(started_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_status ON conversions(status)")
         conn.commit()
         conn.close()
 
@@ -64,9 +65,9 @@ class HistoryDB:
         if self._use_sqlite:
             conn = sqlite3.connect(str(self._db_path))
             cur = conn.execute(
-                '''INSERT INTO conversions (input_path, input_size, started_at, status, backend)
-                   VALUES (?, ?, ?, ?, ?)''',
-                (str(input_path), input_size, started_at, "running", backend)
+                """INSERT INTO conversions (input_path, input_size, started_at, status, backend)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (str(input_path), input_size, started_at, "running", backend),
             )
             entry_id = cur.lastrowid or 0
             conn.commit()
@@ -81,7 +82,7 @@ class HistoryDB:
                 "input_size": input_size,
                 "started": started_at,
                 "status": "running",
-                "backend": backend
+                "backend": backend,
             }
             with self._log_path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(entry) + "\n")
@@ -96,7 +97,7 @@ class HistoryDB:
         integrity_time: float = 0,
         output_size: int = 0,
         duration_ms: int = 0,
-        error_msg: Optional[str] = None
+        error_msg: Optional[str] = None,
     ) -> None:
         """Update entry with completion info."""
         finished_at = datetime.datetime.now().isoformat()
@@ -104,12 +105,21 @@ class HistoryDB:
         if self._use_sqlite:
             conn = sqlite3.connect(str(self._db_path))
             conn.execute(
-                '''UPDATE conversions SET
+                """UPDATE conversions SET
                    output_path=?, output_size=?, duration_ms=?, finished_at=?,
                    status=?, error_msg=?, encode_time_s=?, integrity_time_s=?
-                   WHERE id=?''',
-                (str(output_path) if output_path else None, output_size, duration_ms,
-                 finished_at, status, error_msg, encode_time, integrity_time, entry_id)
+                   WHERE id=?""",
+                (
+                    str(output_path) if output_path else None,
+                    output_size,
+                    duration_ms,
+                    finished_at,
+                    status,
+                    error_msg,
+                    encode_time,
+                    integrity_time,
+                    entry_id,
+                ),
             )
             conn.commit()
             conn.close()
@@ -123,7 +133,7 @@ class HistoryDB:
                 "status": status,
                 "encode_time": encode_time,
                 "integrity_time": integrity_time,
-                "error_msg": error_msg
+                "error_msg": error_msg,
             }
             with self._log_path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(entry) + "\n")
@@ -135,9 +145,9 @@ class HistoryDB:
         if self._use_sqlite:
             conn = sqlite3.connect(str(self._db_path))
             conn.execute(
-                '''INSERT INTO conversions (input_path, started_at, finished_at, status, backend, error_msg)
-                   VALUES (?, ?, ?, ?, ?, ?)''',
-                (str(input_path), now, now, "skipped", backend, reason)
+                """INSERT INTO conversions (input_path, started_at, finished_at, status, backend, error_msg)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (str(input_path), now, now, "skipped", backend, reason),
             )
             conn.commit()
             conn.close()
@@ -148,7 +158,7 @@ class HistoryDB:
                 "finished": now,
                 "status": "skipped",
                 "backend": backend,
-                "reason": reason
+                "reason": reason,
             }
             with self._log_path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(entry) + "\n")
@@ -158,10 +168,7 @@ class HistoryDB:
         if self._use_sqlite:
             conn = sqlite3.connect(str(self._db_path))
             conn.row_factory = sqlite3.Row
-            cur = conn.execute(
-                '''SELECT * FROM conversions ORDER BY started_at DESC LIMIT ?''',
-                (limit,)
-            )
+            cur = conn.execute("""SELECT * FROM conversions ORDER BY started_at DESC LIMIT ?""", (limit,))
             rows = [dict(row) for row in cur.fetchall()]
             conn.close()
             return rows
@@ -197,7 +204,7 @@ class HistoryDB:
             stats: dict = {}
 
             # Total counts by status
-            cur = conn.execute('SELECT status, COUNT(*) FROM conversions GROUP BY status')
+            cur = conn.execute("SELECT status, COUNT(*) FROM conversions GROUP BY status")
             stats["by_status"] = {row[0]: row[1] for row in cur.fetchall()}
 
             # Average encode time for successful conversions
@@ -243,7 +250,7 @@ class HistoryDB:
 
         if self._use_sqlite:
             conn = sqlite3.connect(str(self._db_path))
-            cur = conn.execute('DELETE FROM conversions WHERE started_at < ?', (cutoff,))
+            cur = conn.execute("DELETE FROM conversions WHERE started_at < ?", (cutoff,))
             count = cur.rowcount
             conn.commit()
             conn.close()

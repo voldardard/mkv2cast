@@ -17,16 +17,19 @@ from typing import Any, Dict, List, Optional
 # Try TOML support (Python 3.11+ or tomli package)
 try:
     import tomllib  # Python 3.11+
+
     TOML_AVAILABLE = True
 except ImportError:
     try:
         import tomli as tomllib  # pip install tomli
+
         TOML_AVAILABLE = True
     except ImportError:
         TOML_AVAILABLE = False
 
 
 # -------------------- XDG DIRECTORIES --------------------
+
 
 def get_xdg_config_home() -> Path:
     """Get XDG config home directory."""
@@ -58,6 +61,7 @@ def get_app_dirs() -> Dict[str, Path]:
 
 
 # -------------------- CONFIGURATION DATACLASS --------------------
+
 
 @dataclass
 class Config:
@@ -130,6 +134,7 @@ CFG = Config()
 
 # -------------------- CONFIG FILE LOADING --------------------
 
+
 def _parse_ini_value(value: str):
     """Parse INI value: bool, int, float, list (comma-sep), or string."""
     v = value.strip()
@@ -178,6 +183,7 @@ def _load_single_config(config_dir: Path) -> Dict[str, Any]:
                 return dict(tomllib.load(f))
         except Exception as e:
             import sys
+
             print(f"Warning: Failed to load {toml_path}: {e}", file=sys.stderr)
             return {}
     elif ini_path.exists():
@@ -185,6 +191,7 @@ def _load_single_config(config_dir: Path) -> Dict[str, Any]:
             return _load_ini_config(ini_path)
         except Exception as e:
             import sys
+
             print(f"Warning: Failed to load {ini_path}: {e}", file=sys.stderr)
             return {}
     return {}
@@ -230,7 +237,7 @@ def load_config_file(config_dir: Path) -> dict:
 
 def _get_default_config_toml() -> str:
     """Return default config as TOML string."""
-    return '''# mkv2cast configuration file
+    return """# mkv2cast configuration file
 # This file is auto-generated on first run
 
 [output]
@@ -272,12 +279,12 @@ on_failure = true
 # Language for messages (auto-detected from system if not set)
 # Supported: en, fr, es, it, de
 # lang = "fr"
-'''
+"""
 
 
 def _get_default_config_ini() -> str:
     """Return default config as INI string."""
-    return '''# mkv2cast configuration file
+    return """# mkv2cast configuration file
 # This file is auto-generated on first run
 
 [output]
@@ -317,7 +324,7 @@ on_failure = true
 [i18n]
 # Language for messages (auto-detected from system if not set)
 # lang = fr
-'''
+"""
 
 
 def save_default_config(config_dir: Path) -> Path:

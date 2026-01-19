@@ -44,12 +44,27 @@ def test_sample_mkv(test_data_dir: Path) -> Path:
 
     # Create test file with H.265 video and AAC audio
     cmd = [
-        "ffmpeg", "-y",
-        "-f", "lavfi", "-i", "testsrc=duration=5:size=320x240:rate=24",
-        "-f", "lavfi", "-i", "sine=frequency=440:duration=5",
-        "-c:v", "libx265", "-preset", "ultrafast", "-crf", "35",
-        "-c:a", "aac", "-b:a", "64k",
-        str(mkv_path)
+        "ffmpeg",
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc=duration=5:size=320x240:rate=24",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:duration=5",
+        "-c:v",
+        "libx265",
+        "-preset",
+        "ultrafast",
+        "-crf",
+        "35",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "64k",
+        str(mkv_path),
     ]
 
     try:
@@ -79,13 +94,33 @@ def test_h264_mkv(test_data_dir: Path) -> Path:
         pytest.skip("ffmpeg not available")
 
     cmd = [
-        "ffmpeg", "-y",
-        "-f", "lavfi", "-i", "testsrc=duration=3:size=320x240:rate=24",
-        "-f", "lavfi", "-i", "sine=frequency=440:duration=3",
-        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "35",
-        "-pix_fmt", "yuv420p", "-profile:v", "high", "-level", "4.1",
-        "-c:a", "aac", "-b:a", "64k",
-        str(mkv_path)
+        "ffmpeg",
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc=duration=3:size=320x240:rate=24",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:duration=3",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "ultrafast",
+        "-crf",
+        "35",
+        "-pix_fmt",
+        "yuv420p",
+        "-profile:v",
+        "high",
+        "-level",
+        "4.1",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "64k",
+        str(mkv_path),
     ]
 
     try:
@@ -133,4 +168,5 @@ def mock_xdg_dirs(temp_dir: Path, monkeypatch):
 def default_config():
     """Return a default Config instance for testing."""
     from mkv2cast.config import Config
+
     return Config()

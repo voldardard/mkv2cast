@@ -126,6 +126,7 @@ def terminate_all_processes() -> None:
 
 # -------------------- ARGUMENT PARSING --------------------
 
+
 def parse_args(args: Optional[List[str]] = None) -> Tuple[Config, Optional[Path]]:
     """Parse command-line arguments and return config + optional file path."""
     parser = argparse.ArgumentParser(
@@ -144,15 +145,16 @@ Examples:
   %(prog)s --show-dirs                 # Show config/cache/log directories
   %(prog)s --history                   # Show recent conversion history
   %(prog)s --lang fr                   # Force French language
-        """
+        """,
     )
 
     # Version
-    parser.add_argument("-V", "--version", action="version",
-        version=f"%(prog)s {__version__}\n"
-                f"Author: {__author__}\n"
-                f"License: {__license__}\n"
-                f"URL: {__url__}")
+    parser.add_argument(
+        "-V",
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}\nAuthor: {__author__}\nLicense: {__license__}\nURL: {__url__}",
+    )
 
     # Positional argument
     parser.add_argument("file", nargs="?", help=_("Optional .mkv file to process"))
@@ -190,8 +192,11 @@ Examples:
     quality_group = parser.add_argument_group(_("Encoding quality"))
     quality_group.add_argument("--abr", default="192k")
     quality_group.add_argument("--crf", type=int, default=20)
-    quality_group.add_argument("--preset", default="slow",
-        choices=["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"])
+    quality_group.add_argument(
+        "--preset",
+        default="slow",
+        choices=["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"],
+    )
 
     # Hardware acceleration
     hw_group = parser.add_argument_group(_("Hardware acceleration"))
@@ -226,15 +231,18 @@ Examples:
 
     # Notifications (new)
     notify_group = parser.add_argument_group(_("Notifications"))
-    notify_group.add_argument("--notify", action="store_true", default=True,
-        help=_("Send desktop notification when done (default: enabled)"))
-    notify_group.add_argument("--no-notify", action="store_false", dest="notify",
-        help=_("Disable desktop notifications"))
+    notify_group.add_argument(
+        "--notify", action="store_true", default=True, help=_("Send desktop notification when done (default: enabled)")
+    )
+    notify_group.add_argument(
+        "--no-notify", action="store_false", dest="notify", help=_("Disable desktop notifications")
+    )
 
     # Internationalization (new)
     i18n_group = parser.add_argument_group(_("Internationalization"))
-    i18n_group.add_argument("--lang", choices=["en", "fr", "es", "it", "de"], default=None,
-        help=_("Force language (default: auto-detect)"))
+    i18n_group.add_argument(
+        "--lang", choices=["en", "fr", "es", "it", "de"], default=None, help=_("Force language (default: auto-detect)")
+    )
 
     # Utility commands
     util_group = parser.add_argument_group(_("Utility commands"))
@@ -296,6 +304,7 @@ Examples:
 
 # -------------------- FILE FILTERING --------------------
 
+
 def is_our_output_or_tmp(name: str, cfg: Config) -> bool:
     """Check if filename is our output or temp file."""
     if ".tmp." in name:
@@ -343,10 +352,7 @@ def _matches_path(filepath: Path, paths: List[str]) -> bool:
 def should_process_file(filepath: Path, cfg: Config) -> Tuple[bool, Optional[str]]:
     """Check if file should be processed based on filters."""
     if cfg.include_patterns or cfg.include_paths:
-        matches_include = (
-            _matches_pattern(filepath, cfg.include_patterns) or
-            _matches_path(filepath, cfg.include_paths)
-        )
+        matches_include = _matches_pattern(filepath, cfg.include_patterns) or _matches_path(filepath, cfg.include_paths)
         if not matches_include:
             return False, "no include match"
 
@@ -440,6 +446,7 @@ def collect_targets(root: Path, single: Optional[Path], cfg: Config) -> Tuple[Li
 
 # -------------------- SYSTEM DETECTION --------------------
 
+
 def is_running_as_root() -> bool:
     """Check if script is running as root."""
     return os.geteuid() == 0
@@ -475,10 +482,12 @@ def get_gpu_info() -> Tuple[str, int]:
     try:
         result = subprocess.run(
             ["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
-            capture_output=True, text=True, timeout=5
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0 and result.stdout.strip():
-            vram_mb = int(result.stdout.strip().split('\n')[0])
+            vram_mb = int(result.stdout.strip().split("\n")[0])
             gpu_type = "nvidia"
             return gpu_type, vram_mb
     except Exception:
@@ -546,6 +555,7 @@ def auto_detect_workers(backend: str) -> Tuple[int, int]:
 
 # -------------------- MULTI-USER CLEANUP (ROOT) --------------------
 
+
 def get_all_users_mkv2cast_dirs() -> List[Dict[str, Any]]:
     """
     Get mkv2cast directories for all users on the system.
@@ -567,15 +577,17 @@ def get_all_users_mkv2cast_dirs() -> List[Dict[str, Any]]:
             config_dir = entry / ".config" / "mkv2cast"
 
             if cache_dir.exists() or state_dir.exists():
-                users.append({
-                    "user": entry.name,
-                    "home": entry,
-                    "cache": cache_dir,
-                    "tmp": cache_dir / "tmp",
-                    "state": state_dir,
-                    "logs": state_dir / "logs",
-                    "config": config_dir
-                })
+                users.append(
+                    {
+                        "user": entry.name,
+                        "home": entry,
+                        "cache": cache_dir,
+                        "tmp": cache_dir / "tmp",
+                        "state": state_dir,
+                        "logs": state_dir / "logs",
+                        "config": config_dir,
+                    }
+                )
     except PermissionError:
         pass
 
@@ -662,13 +674,14 @@ def cleanup_all_users_tmp(max_age_hours: int = 0, verbose: bool = True) -> Dict[
 
 # -------------------- LOGGING --------------------
 
+
 def get_log_path(inp: Path) -> Path:
     """Generate log path for input file."""
     logs_dir = APP_DIRS.get("logs", Path.home() / ".local" / "state" / "mkv2cast" / "logs")
     logs_dir.mkdir(parents=True, exist_ok=True)
 
     date_str = datetime.date.today().isoformat()
-    safe_name = re.sub(r'[^\w\-.]', '_', inp.stem)[:80]
+    safe_name = re.sub(r"[^\w\-.]", "_", inp.stem)[:80]
     return logs_dir / f"{date_str}_{safe_name}.log"
 
 
@@ -687,6 +700,7 @@ def get_tmp_path(inp: Path, worker_id: int, tag: str, cfg: Config) -> Path:
 
 # -------------------- UTILITY COMMANDS --------------------
 
+
 def check_requirements() -> int:
     """Check system requirements."""
     print(f"mkv2cast v{__version__} - {_('Requirements Check')}")
@@ -702,7 +716,7 @@ def check_requirements() -> int:
     try:
         result = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True, timeout=5)
         if result.returncode == 0:
-            version_line = result.stdout.split('\n')[0] if result.stdout else "unknown"
+            version_line = result.stdout.split("\n")[0] if result.stdout else "unknown"
             print(f"  ✓ ffmpeg: {version_line}")
         else:
             print("  ✗ ffmpeg: installed but returned error")
@@ -842,7 +856,7 @@ def handle_utility_commands(cfg: Config, args: argparse.Namespace) -> Optional[i
                 print(f"{_('Removed')} {removed} {_('log files older than')} {args.clean_logs} {_('days')}")
         return 0
 
-    HISTORY_DB = HistoryDB(APP_DIRS['state'])
+    HISTORY_DB = HistoryDB(APP_DIRS["state"])
 
     if args.clean_history is not None:
         removed = HISTORY_DB.clean_old(args.clean_history)
@@ -873,7 +887,7 @@ def handle_utility_commands(cfg: Config, args: argparse.Namespace) -> Optional[i
 
             max_name_len = max(20, term_cols - 45)
             if len(inp_name) > max_name_len:
-                inp_name = inp_name[:max_name_len - 3] + "..."
+                inp_name = inp_name[: max_name_len - 3] + "..."
 
             print(f"  {status_icon} [{started}] {status:8} {inp_name}")
         return 0
@@ -893,7 +907,7 @@ def handle_utility_commands(cfg: Config, args: argparse.Namespace) -> Optional[i
         avg_time = stats.get("avg_encode_time", 0)
         total_time = stats.get("total_encode_time", 0)
         print(f"  {_('Average encode time')}: {avg_time:.1f}s")
-        print(f"  {_('Total encode time')}:   {total_time:.1f}s ({total_time/3600:.1f}h)")
+        print(f"  {_('Total encode time')}:   {total_time:.1f}s ({total_time / 3600:.1f}h)")
         return 0
 
     return None
@@ -901,9 +915,11 @@ def handle_utility_commands(cfg: Config, args: argparse.Namespace) -> Optional[i
 
 # -------------------- MAIN --------------------
 
+
 def main_legacy(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int, bool]:
     """Legacy sequential mode. Returns (ok, skipped, failed, interrupted, was_interrupted)."""
     from mkv2cast.config import CFG as global_cfg
+
     global_cfg.__dict__.update(cfg.__dict__)
 
     root = Path(".").resolve()
@@ -924,7 +940,6 @@ def main_legacy(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int
     interrupted = False
 
     for _i, inp in enumerate(targets, start=1):
-
         if output_exists_for_input(inp, cfg):
             skipped += 1
             continue
@@ -934,11 +949,7 @@ def main_legacy(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int
 
         # Integrity check
         success, _elapsed = do_integrity_check(
-            inp,
-            enabled=cfg.integrity_check,
-            stable_wait=cfg.stable_wait,
-            deep_check=cfg.deep_check,
-            log_path=log_path
+            inp, enabled=cfg.integrity_check, stable_wait=cfg.stable_wait, deep_check=cfg.deep_check, log_path=log_path
         )
         if not success:
             skipped += 1
@@ -1019,6 +1030,7 @@ def main_legacy(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int
 def main_rich(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int, bool]:
     """Rich UI sequential mode. Returns (ok, skipped, failed, interrupted, was_interrupted)."""
     from mkv2cast.config import CFG as global_cfg
+
     global_cfg.__dict__.update(cfg.__dict__)
 
     start_time = time.time()
@@ -1053,11 +1065,7 @@ def main_rich(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int, 
 
         # Integrity check
         success, _elapsed = do_integrity_check(
-            inp,
-            enabled=cfg.integrity_check,
-            stable_wait=cfg.stable_wait,
-            deep_check=cfg.deep_check,
-            log_path=log_path
+            inp, enabled=cfg.integrity_check, stable_wait=cfg.stable_wait, deep_check=cfg.deep_check, log_path=log_path
         )
         if not success:
             ui.log_file_start(inp, inp)
@@ -1103,9 +1111,7 @@ def main_rich(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int, 
         start_encode = time.time()
 
         try:
-            rc, stderr = ui.run_ffmpeg_with_progress(
-                cmd, stage, dur_ms, idx, total_files
-            )
+            rc, stderr = ui.run_ffmpeg_with_progress(cmd, stage, dur_ms, idx, total_files)
         except KeyboardInterrupt:
             interrupted = True
             if tmp.exists():
@@ -1144,6 +1150,7 @@ def main_rich(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int, 
 def main_pipeline(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int, bool]:
     """Pipeline mode with parallel workers. Returns (ok, skipped, failed, interrupted_count, was_interrupted)."""
     from mkv2cast.config import CFG as global_cfg
+
     global_cfg.__dict__.update(cfg.__dict__)
 
     root = Path(".").resolve()
@@ -1166,11 +1173,7 @@ def main_pipeline(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, i
         integrity_workers = cfg.integrity_workers
 
     # Create Rich UI
-    ui = RichProgressUI(
-        total_files=len(targets),
-        encode_workers=encode_workers,
-        integrity_workers=integrity_workers
-    )
+    ui = RichProgressUI(total_files=len(targets), encode_workers=encode_workers, integrity_workers=integrity_workers)
 
     # Header
     ui.console.print(f"[bold]mkv2cast[/bold] v{__version__}")
@@ -1216,21 +1219,22 @@ def main() -> int:
 
     # Update global config
     from mkv2cast.config import CFG as global_cfg
+
     global_cfg.__dict__.update(cfg.__dict__)
 
     # Initialize directories
     APP_DIRS = get_app_dirs()
 
     # Create default config if needed
-    save_default_config(APP_DIRS['config'])
+    save_default_config(APP_DIRS["config"])
 
     # Load config file
-    file_config = load_config_file(APP_DIRS['config'])
+    file_config = load_config_file(APP_DIRS["config"])
     if file_config:
         apply_config_to_args(file_config, cfg)
 
     # Initialize history database
-    HISTORY_DB = HistoryDB(APP_DIRS['state'])
+    HISTORY_DB = HistoryDB(APP_DIRS["state"])
 
     # Handle utility commands
     _parser = argparse.ArgumentParser(add_help=False)

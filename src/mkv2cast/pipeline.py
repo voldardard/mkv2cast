@@ -97,6 +97,7 @@ def integrity_check_with_progress(
     """
     if cfg is None:
         from mkv2cast.config import CFG
+
         cfg = CFG
 
     start_time = time.time()
@@ -139,10 +140,7 @@ def integrity_check_with_progress(
     if cfg.deep_check:
         ui.update_integrity(worker_id, "DECODE", 70, filename, inp=path)
         # Deep decode check - this takes a while
-        cmd = [
-            "ffmpeg", "-hide_banner", "-loglevel", "error",
-            "-i", str(path), "-map", "0:v:0", "-f", "null", "-"
-        ]
+        cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", str(path), "-map", "0:v:0", "-f", "null", "-"]
         try:
             result = subprocess.run(cmd, capture_output=True, timeout=3600)
             if result.returncode != 0:
@@ -222,10 +220,7 @@ def run_ffmpeg_with_progress(
             if pct > last_pct or speed != last_speed:
                 last_pct = pct
                 last_speed = speed
-                ui.update_encode(
-                    worker_id, stage, pct, filename,
-                    speed=speed, inp=inp, out_ms=out_ms, dur_ms=dur_ms
-                )
+                ui.update_encode(worker_id, stage, pct, filename, speed=speed, inp=inp, out_ms=out_ms, dur_ms=dur_ms)
 
         process.wait()
         return process.returncode
@@ -332,8 +327,7 @@ class PipelineOrchestrator:
             # Run integrity check
             try:
                 success, integrity_time = integrity_check_with_progress(
-                    inp, self.ui, worker_id, filename, log_path,
-                    self.stop_event, self.cfg
+                    inp, self.ui, worker_id, filename, log_path, self.stop_event, self.cfg
                 )
                 if not success:
                     self.ui.mark_skipped(inp, _("integrity failed"))
@@ -410,14 +404,11 @@ class PipelineOrchestrator:
             self.ui.start_encode(worker_id, filename, job.inp, job.final.name)
 
             # Rebuild command (in case something changed)
-            cmd, _stage = build_transcode_cmd(
-                job.inp, job.decision, self.backend, job.tmp, job.log_path, self.cfg
-            )
+            cmd, _stage = build_transcode_cmd(job.inp, job.decision, self.backend, job.tmp, job.log_path, self.cfg)
 
             try:
                 rc = run_ffmpeg_with_progress(
-                    cmd, self.ui, worker_id, job.stage, filename,
-                    job.dur_ms, job.log_path, job.inp, self.stop_event
+                    cmd, self.ui, worker_id, job.stage, filename, job.dur_ms, job.log_path, job.inp, self.stop_event
                 )
             except Exception as e:
                 try:
@@ -453,18 +444,12 @@ class PipelineOrchestrator:
         # Create worker threads
         integrity_threads = []
         for i in range(self.integrity_workers_count):
-            t = threading.Thread(
-                target=self.integrity_worker, args=(i,),
-                name=f"integrity_worker_{i}", daemon=True
-            )
+            t = threading.Thread(target=self.integrity_worker, args=(i,), name=f"integrity_worker_{i}", daemon=True)
             integrity_threads.append(t)
 
         encode_threads = []
         for i in range(self.encode_workers_count):
-            t = threading.Thread(
-                target=self.encode_worker, args=(i,),
-                name=f"encode_worker_{i}", daemon=True
-            )
+            t = threading.Thread(target=self.encode_worker, args=(i,), name=f"encode_worker_{i}", daemon=True)
             encode_threads.append(t)
 
         # Signal handler

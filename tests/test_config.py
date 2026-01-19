@@ -11,6 +11,7 @@ class TestConfig:
     def test_config_defaults(self):
         """Test default config values."""
         from mkv2cast.config import Config
+
         cfg = Config()
 
         assert cfg.suffix == ".cast"
@@ -29,14 +30,8 @@ class TestConfig:
     def test_config_custom_values(self):
         """Test config with custom values."""
         from mkv2cast.config import Config
-        cfg = Config(
-            suffix=".converted",
-            container="mp4",
-            recursive=False,
-            debug=True,
-            crf=23,
-            preset="fast"
-        )
+
+        cfg = Config(suffix=".converted", container="mp4", recursive=False, debug=True, crf=23, preset="fast")
 
         assert cfg.suffix == ".converted"
         assert cfg.container == "mp4"
@@ -143,17 +138,9 @@ recursive = false
         from mkv2cast.config import Config, apply_config_to_args
 
         file_config = {
-            "output": {
-                "suffix": ".custom",
-                "container": "mp4"
-            },
-            "encoding": {
-                "crf": 23,
-                "preset": "medium"
-            },
-            "notifications": {
-                "enabled": False
-            }
+            "output": {"suffix": ".custom", "container": "mp4"},
+            "encoding": {"crf": 23, "preset": "medium"},
+            "notifications": {"enabled": False},
         }
 
         cfg = Config()

@@ -23,6 +23,7 @@ from mkv2cast.ui.legacy_ui import fmt_hms, shorten
 @dataclass
 class JobStatus:
     """Tracks the status of a single file."""
+
     inp: Path
     stage: str = "WAITING"  # WAITING, INTEGRITY, WAITING_ENCODE, ENCODE, DONE, FAILED, SKIPPED
     pct: int = 0
@@ -243,12 +244,7 @@ class RichProgressUI:
 
     def start(self):
         """Start the live display."""
-        self.live = Live(
-            self._render(),
-            console=self.console,
-            refresh_per_second=10,
-            transient=False
-        )
+        self.live = Live(self._render(), console=self.console, refresh_per_second=10, transient=False)
         self.live.start()
 
         self._refresh_thread = threading.Thread(target=self._refresh_loop, daemon=True)
@@ -287,8 +283,9 @@ class RichProgressUI:
                 self.jobs[key].pct = 0
                 self.jobs[key].speed = ""
 
-    def update_integrity(self, worker_id: int, _stage: str, pct: int, _filename: str,
-                        speed: str = "", inp: Optional[Path] = None):
+    def update_integrity(
+        self, worker_id: int, _stage: str, pct: int, _filename: str, speed: str = "", inp: Optional[Path] = None
+    ):
         """Update integrity progress."""
         with self.lock:
             if inp:
@@ -334,9 +331,17 @@ class RichProgressUI:
                 self.jobs[key].speed = ""
                 self.jobs[key].output_file = output_file
 
-    def update_encode(self, worker_id: int, _stage: str, pct: int, _filename: str,
-                     speed: str = "", inp: Optional[Path] = None,
-                     out_ms: int = 0, dur_ms: int = 0):
+    def update_encode(
+        self,
+        worker_id: int,
+        _stage: str,
+        pct: int,
+        _filename: str,
+        speed: str = "",
+        inp: Optional[Path] = None,
+        out_ms: int = 0,
+        dur_ms: int = 0,
+    ):
         """Update encode progress."""
         with self.lock:
             if inp:

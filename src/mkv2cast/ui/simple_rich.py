@@ -76,9 +76,7 @@ class SimpleRichUI:
         if output_size > 0:
             size_mb = output_size / (1024 * 1024)
             size_str = f" ({size_mb:.1f} MB)"
-        self.console.print(
-            f"  [green]✓ {_('OK')}[/green] {_('in')} {fmt_hms(elapsed)}{size_str}"
-        )
+        self.console.print(f"  [green]✓ {_('OK')}[/green] {_('in')} {fmt_hms(elapsed)}{size_str}")
         self.ok += 1
         self.processed += 1
 
@@ -89,12 +87,7 @@ class SimpleRichUI:
         self.processed += 1
 
     def run_ffmpeg_with_progress(
-        self,
-        cmd: List[str],
-        stage: str,
-        dur_ms: int = 0,
-        file_idx: int = 1,
-        total_files: int = 1
+        self, cmd: List[str], stage: str, dur_ms: int = 0, file_idx: int = 1, total_files: int = 1
     ) -> Tuple[int, str]:
         """
         Run ffmpeg command while showing progress.

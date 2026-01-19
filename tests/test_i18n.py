@@ -3,7 +3,6 @@ Tests for the internationalization module.
 """
 
 
-
 class TestI18nSetup:
     """Tests for i18n setup and configuration."""
 
