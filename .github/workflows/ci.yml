@@ -15,6 +15,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check Debian compat duplication
+        run: |
+          set -euo pipefail
+          if [ -f packaging/debian/compat ]; then
+            if rg --quiet "debhelper-compat" packaging/debian/control; then
+              echo "Error: packaging/debian/compat is present while debhelper-compat is declared in packaging/debian/control."
+              exit 1
+            fi
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

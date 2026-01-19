@@ -1,7 +1,7 @@
 # mkv2cast
 
 <p align="center">
-  <img src="docs/_static/mkv2cast-logo.svg" alt="mkv2cast logo" width="280">
+  <img src="https://github.com/voldardard/mkv2cast/blob/main/docs/_static/mkv2cast-logo.svg" alt="mkv2cast logo" width="280">
 </p>
 
 <!-- Badges de statut -->
@@ -24,7 +24,7 @@
 Convert your MKV video files to formats compatible with Chromecast devices and Smart TVs, using intelligent codec detection and hardware-accelerated encoding.
 
 <p align="center">
-  <img src="docs/screenshot.png" alt="mkv2cast progress interface" width="700">
+  <img src="https://github.com/voldardard/mkv2cast/blob/main/docs/screenshot.png" alt="mkv2cast progress interface" width="700">
 </p>
 
 ---
