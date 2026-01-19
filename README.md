@@ -190,6 +190,30 @@ pip install "mkv2cast[full]"
 
 ```bash
 yay -S mkv2cast
+# or
+paru -S mkv2cast
+```
+
+### Debian/Ubuntu (APT Repository)
+
+Add the official APT repository for automatic updates:
+
+```bash
+# Add the repository
+echo "deb [trusted=yes] https://voldardard.github.io/mkv2cast/apt stable main" | sudo tee /etc/apt/sources.list.d/mkv2cast.list
+
+# Update and install
+sudo apt update
+sudo apt install mkv2cast
+```
+
+Or download the `.deb` package directly from [GitHub Releases](https://github.com/voldardard/mkv2cast/releases):
+
+```bash
+# Download and install specific version
+wget https://github.com/voldardard/mkv2cast/releases/download/v1.1.2/mkv2cast_1.1.2-1_all.deb
+sudo dpkg -i mkv2cast_1.1.2-1_all.deb
+sudo apt-get install -f  # Install dependencies
 ```
 
 ### Script Install (One-Liner)
@@ -825,19 +849,40 @@ Encoding fails with VAAPI on AMD GPU...
 
 ---
 
+## Web Interface
+
+Looking for a web-based interface? Check out **[mkv2castUI](https://github.com/voldardard/mkv2castUI)** - a full-featured web application for mkv2cast with:
+
+- 🌐 **Web Upload**: Drag and drop MKV files for conversion
+- 📊 **Real-time Progress**: WebSocket-based progress tracking
+- 🔐 **OAuth Authentication**: Sign in with Google or GitHub
+- 💳 **Subscription Tiers**: Free, Pro, and Enterprise plans
+- 🐳 **Docker Ready**: Easy deployment with Docker Compose
+
+```bash
+git clone https://github.com/voldardard/mkv2castUI.git
+cd mkv2castUI
+docker-compose up -d
+```
+
+---
+
 ## Roadmap
 
 | Feature | Priority | Complexity | Status |
 |---------|----------|------------|--------|
-| Docker & WebUI | Medium | High | Planned |
-| Watch mode (inotify) | Medium | Medium | Planned |
-| NVIDIA NVENC support | Medium | Medium | Planned |
-| Profiles (fast/balanced/quality) | Low | Low | Planned |
-| Subtitle extraction | Low | Medium | Planned |
+| NVIDIA NVENC support | High | Medium | 🚧 In Progress |
+| Audio track selection | High | Low | 🚧 In Progress |
+| Subtitle selection | High | Medium | 🚧 In Progress |
+| Watch mode (inotify) | Medium | Medium | 🚧 In Progress |
+| Profiles (fast/balanced/quality) | Medium | Low | Planned |
 | HDR to SDR tone mapping | Low | High | Planned |
+| Webhooks notifications | Low | Low | Planned |
+| AMD AMF support | Low | Medium | Planned |
+| Metadata preservation | Low | Medium | Planned |
 | Integration Plex/Jellyfin | Low | High | Planned |
 
-### Recent Additions (v1.1.0)
+### Recent Additions (v1.1.x)
 
 - ✅ Multi-language support (EN, FR, ES, IT, DE)
 - ✅ Desktop notifications
@@ -845,9 +890,10 @@ Encoding fails with VAAPI on AMD GPU...
 - ✅ Comprehensive test suite
 - ✅ GitHub Actions CI/CD
 - ✅ AUR & Debian packaging
-- ✅ Sphinx documentation
+- ✅ APT repository for Debian/Ubuntu
+- ✅ Sphinx documentation on GitHub Pages
 
-Have a feature request? Open an issue!
+Have a feature request? [Open an issue](https://github.com/voldardard/mkv2cast/issues)!
 
 ---
 

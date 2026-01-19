@@ -99,7 +99,18 @@ class Config:
     vaapi_device: str = "/dev/dri/renderD128"
     vaapi_qp: int = 23
     qsv_quality: int = 23
-    hw: str = "auto"
+    nvenc_cq: int = 23  # NVIDIA NVENC constant quality (0-51, lower=better)
+    hw: str = "auto"  # auto, nvenc, qsv, vaapi, cpu
+
+    # Audio track selection
+    audio_lang: Optional[str] = None  # Comma-separated language codes (e.g., "fre,fra,fr,eng")
+    audio_track: Optional[int] = None  # Explicit audio track index
+
+    # Subtitle selection
+    subtitle_lang: Optional[str] = None  # Comma-separated language codes
+    subtitle_track: Optional[int] = None  # Explicit subtitle track index
+    prefer_forced_subs: bool = True  # Prefer forced subtitles in audio language
+    no_subtitles: bool = False  # Disable all subtitles
 
     # Integrity checks
     integrity_check: bool = True

@@ -56,11 +56,27 @@ For Arch Linux users:
 Debian/Ubuntu
 -------------
 
-Download the .deb package from the releases page:
+**APT Repository (Recommended)**
+
+Add the official APT repository for automatic updates:
 
 .. code-block:: bash
 
-   sudo dpkg -i mkv2cast_1.1.0_all.deb
+   # Add the repository
+   echo "deb [trusted=yes] https://voldardard.github.io/mkv2cast/apt stable main" | sudo tee /etc/apt/sources.list.d/mkv2cast.list
+
+   # Update and install
+   sudo apt update
+   sudo apt install mkv2cast
+
+**Manual Installation**
+
+Download the ``.deb`` package from `GitHub Releases <https://github.com/voldardard/mkv2cast/releases>`_:
+
+.. code-block:: bash
+
+   wget https://github.com/voldardard/mkv2cast/releases/download/v1.1.2/mkv2cast_1.1.2-1_all.deb
+   sudo dpkg -i mkv2cast_1.1.2-1_all.deb
    sudo apt-get install -f  # Install dependencies
 
 Script Installation

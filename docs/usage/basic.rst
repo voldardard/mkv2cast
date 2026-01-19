@@ -163,10 +163,91 @@ Notifications
 
    mkv2cast --no-notify
 
+Audio Track Selection
+---------------------
+
+**By language priority:**
+
+.. code-block:: bash
+
+   # Prefer French, then English
+   mkv2cast --audio-lang fre,fra,fr,eng
+
+   # Japanese with English fallback
+   mkv2cast --audio-lang jpn,ja,eng
+
+**By track index:**
+
+.. code-block:: bash
+
+   # Use second audio track (0-indexed)
+   mkv2cast --audio-track 1
+
+Subtitle Selection
+------------------
+
+**By language:**
+
+.. code-block:: bash
+
+   # Include English subtitles
+   mkv2cast --subtitle-lang eng
+
+   # French or English subtitles
+   mkv2cast --subtitle-lang fre,fra,eng
+
+**By track index:**
+
+.. code-block:: bash
+
+   mkv2cast --subtitle-track 0
+
+**Forced subtitles:**
+
+.. code-block:: bash
+
+   # Prefer forced subtitles in audio language (default)
+   mkv2cast --prefer-forced-subs
+
+   # Don't prefer forced subtitles
+   mkv2cast --no-forced-subs
+
+**Disable subtitles:**
+
+.. code-block:: bash
+
+   mkv2cast --no-subtitles
+
+Watch Mode
+----------
+
+Monitor a directory for new MKV files and convert automatically.
+
+**Watch current directory:**
+
+.. code-block:: bash
+
+   mkv2cast --watch
+
+**Watch specific directory:**
+
+.. code-block:: bash
+
+   mkv2cast --watch /path/to/folder
+
+**Custom polling interval:**
+
+.. code-block:: bash
+
+   mkv2cast --watch --watch-interval 10
+
+Watch mode uses ``watchdog`` library if available for efficient file system monitoring.
+Install with: ``pip install mkv2cast[watch]``
+
 Language
 --------
 
-**Force specific language:**
+**Force UI language:**
 
 .. code-block:: bash
 

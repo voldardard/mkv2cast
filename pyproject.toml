@@ -32,10 +32,12 @@ dependencies = []  # No mandatory dependencies - all Python standard library
 [project.optional-dependencies]
 rich = ["rich>=13.0.0"]
 notifications = ["plyer>=2.1.0"]
+watch = ["watchdog>=3.0.0"]
 full = [
     "rich>=13.0.0",
     "tomli>=2.0.0; python_version < '3.11'",
     "plyer>=2.1.0",
+    "watchdog>=3.0.0",
 ]
 dev = [
     "pytest>=7.0",

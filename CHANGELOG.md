@@ -13,14 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **AUR Package**: Published on Arch User Repository (`yay -S mkv2cast`)
+- **APT Repository**: Debian/Ubuntu users can now add our APT repo for automatic updates
 - **AUR Workflow**: Automated publishing to AUR on releases (`.github/workflows/aur.yml`)
-- **Debian Workflow**: Automated `.deb` package builds on releases (`.github/workflows/deb.yml`)
+- **Debian Workflow**: Automated `.deb` package builds and APT repo updates (`.github/workflows/deb.yml`)
 - Makefile targets: `make deb` and `make aur-srcinfo` for local package building
 - CI/Docs status badges in Sphinx documentation
 
 ### Changed
 - Documentation URL changed from readthedocs to GitHub Pages
 - Install script version updated to match package version
+- `make deploy` now shows all automated actions (PyPI, AUR, Debian, APT repo)
 
 ### Fixed
 - Documentation badges now show real-time CI and build status

@@ -366,3 +366,57 @@ msgstr "fichiers supprimés"
 
 msgid "Total removed"
 msgstr "Total supprimé"
+
+# Watch mode
+msgid "Watch Mode"
+msgstr "Mode Surveillance"
+
+msgid "NEW"
+msgstr "NOUVEAU"
+
+msgid "Watching"
+msgstr "Surveillance"
+
+msgid "Press Ctrl+C to stop"
+msgstr "Appuyez sur Ctrl+C pour arrêter"
+
+# Audio/Subtitle selection
+msgid "Audio track selection"
+msgstr "Sélection de piste audio"
+
+msgid "Comma-separated language codes priority (e.g., fre,fra,fr,eng)"
+msgstr "Codes langue séparés par virgule (ex: fre,fra,fr,eng)"
+
+msgid "Explicit audio track index (0-based)"
+msgstr "Index de piste audio explicite (commence à 0)"
+
+msgid "Subtitle selection"
+msgstr "Sélection de sous-titres"
+
+msgid "Comma-separated subtitle language codes (e.g., fre,eng)"
+msgstr "Codes langue sous-titres séparés par virgule (ex: fre,eng)"
+
+msgid "Explicit subtitle track index (0-based)"
+msgstr "Index de piste sous-titres explicite (commence à 0)"
+
+msgid "Prefer forced subtitles in audio language (default: True)"
+msgstr "Préférer les sous-titres forcés dans la langue audio (défaut: Oui)"
+
+msgid "Don't prefer forced subtitles"
+msgstr "Ne pas préférer les sous-titres forcés"
+
+msgid "Disable all subtitles"
+msgstr "Désactiver tous les sous-titres"
+
+# Hardware acceleration
+msgid "NVENC constant quality (0-51)"
+msgstr "Qualité constante NVENC (0-51)"
+
+msgid "Watch mode"
+msgstr "Mode surveillance"
+
+msgid "Watch directory for new MKV files and convert automatically"
+msgstr "Surveiller le dossier pour les nouveaux fichiers MKV et convertir automatiquement"
+
+msgid "Polling interval in seconds for watch mode (default: 5)"
+msgstr "Intervalle de vérification en secondes pour le mode surveillance (défaut: 5)"

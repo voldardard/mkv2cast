@@ -4,6 +4,11 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
   build-deb:
     name: Build Debian Package
@@ -33,37 +38,180 @@ jobs:
             python3-build \
             python3-installer \
             python3-hatchling \
-            fakeroot
+            fakeroot \
+            dpkg-dev \
+            apt-utils
       
-      - name: Update changelog version
+      - name: Update debian/changelog version
         run: |
           cd packaging/debian
-          # Update the version in changelog
           sed -i "1s/([^)]*)/(${{ steps.version.outputs.version }}-1)/" changelog
           cat changelog
       
       - name: Prepare source directory
         run: |
-          # Create a clean source directory for building
-          mkdir -p build-deb
-          cp -r src pyproject.toml README.md LICENSE CHANGELOG.md man completions systemd build-deb/
-          cp -r packaging/debian build-deb/
+          mkdir -p build-deb/mkv2cast-${{ steps.version.outputs.version }}
+          cp -r src pyproject.toml README.md LICENSE CHANGELOG.md man completions systemd \
+            build-deb/mkv2cast-${{ steps.version.outputs.version }}/
+          cp -r packaging/debian build-deb/mkv2cast-${{ steps.version.outputs.version }}/
       
       - name: Build Debian package
         run: |
-          cd build-deb
+          cd build-deb/mkv2cast-${{ steps.version.outputs.version }}
           dpkg-buildpackage -us -uc -b
+          ls -la ../
       
-      - name: List built packages
-        run: |
-          ls -la *.deb 2>/dev/null || ls -la build-deb/../*.deb 2>/dev/null || echo "Looking for .deb files..."
-          find . -name "*.deb" -type f
-      
-      - name: Upload to Release
+      - name: Upload .deb to Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            *.deb
-            build-deb/../*.deb
+          files: build-deb/*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-apt-repo:
+    name: Update APT Repository
+    runs-on: ubuntu-latest
+    needs: build-deb
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: apt-repo
+          fetch-depth: 0
+        continue-on-error: true
+      
+      - name: Create apt-repo branch if not exists
+        run: |
+          if [ ! -d ".git" ]; then
+            git clone https://github.com/${{ github.repository }}.git .
+            git checkout apt-repo 2>/dev/null || git checkout -b apt-repo
+          fi
+      
+      - name: Install APT tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev apt-utils gnupg
+      
+      - name: Download .deb from release
+        run: |
+          mkdir -p pool/main
+          VERSION=${GITHUB_REF#refs/tags/v}
+          curl -L -o pool/main/mkv2cast_${VERSION}-1_all.deb \
+            "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/mkv2cast_${VERSION}-1_all.deb"
+          ls -la pool/main/
+      
+      - name: Generate Packages index
+        run: |
+          mkdir -p dists/stable/main/binary-amd64
+          mkdir -p dists/stable/main/binary-arm64
+          mkdir -p dists/stable/main/binary-all
+          
+          # Generate Packages file
+          cd pool/main
+          dpkg-scanpackages --arch all . > ../../dists/stable/main/binary-all/Packages
+          cp ../../dists/stable/main/binary-all/Packages ../../dists/stable/main/binary-amd64/Packages
+          cp ../../dists/stable/main/binary-all/Packages ../../dists/stable/main/binary-arm64/Packages
+          cd ../..
+          
+          # Compress Packages files
+          for arch in all amd64 arm64; do
+            gzip -k -f dists/stable/main/binary-$arch/Packages
+          done
+      
+      - name: Generate Release file
+        run: |
+          cd dists/stable
+          cat > Release << EOF
+          Origin: mkv2cast
+          Label: mkv2cast
+          Suite: stable
+          Codename: stable
+          Version: 1.0
+          Architectures: amd64 arm64 all
+          Components: main
+          Description: mkv2cast APT repository
+          Date: $(date -Ru)
+          EOF
+          
+          # Add checksums
+          echo "MD5Sum:" >> Release
+          for f in main/binary-*/Packages*; do
+            [ -f "$f" ] && echo " $(md5sum $f | cut -d' ' -f1) $(wc -c < $f) $f" >> Release
+          done
+          
+          echo "SHA256:" >> Release
+          for f in main/binary-*/Packages*; do
+            [ -f "$f" ] && echo " $(sha256sum $f | cut -d' ' -f1) $(wc -c < $f) $f" >> Release
+          done
+          
+          cat Release
+      
+      - name: Create index.html
+        run: |
+          cat > index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>mkv2cast APT Repository</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+              h1 { color: #333; }
+              pre { background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
+              code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
+              .note { background: #e7f3ff; border-left: 4px solid #2196F3; padding: 10px 15px; margin: 20px 0; }
+            </style>
+          </head>
+          <body>
+            <h1>🎬 mkv2cast APT Repository</h1>
+            <p>This is the official APT repository for <a href="https://github.com/voldardard/mkv2cast">mkv2cast</a>.</p>
+            
+            <h2>Installation</h2>
+            <p>Add the repository to your system:</p>
+            <pre>
+          # Add the repository
+          echo "deb [trusted=yes] https://voldardard.github.io/mkv2cast/apt stable main" | sudo tee /etc/apt/sources.list.d/mkv2cast.list
+
+          # Update and install
+          sudo apt update
+          sudo apt install mkv2cast
+            </pre>
+            
+            <div class="note">
+              <strong>Note:</strong> This repository uses <code>[trusted=yes]</code> as packages are not GPG signed.
+              For production use, consider using the PyPI package: <code>pip install mkv2cast</code>
+            </div>
+            
+            <h2>Alternative Installation Methods</h2>
+            <ul>
+              <li><strong>PyPI:</strong> <code>pip install mkv2cast</code></li>
+              <li><strong>AUR (Arch Linux):</strong> <code>yay -S mkv2cast</code></li>
+              <li><strong>Manual:</strong> Download .deb from <a href="https://github.com/voldardard/mkv2cast/releases">GitHub Releases</a></li>
+            </ul>
+            
+            <h2>Links</h2>
+            <ul>
+              <li><a href="https://github.com/voldardard/mkv2cast">GitHub Repository</a></li>
+              <li><a href="https://voldardard.github.io/mkv2cast">Documentation</a></li>
+              <li><a href="https://pypi.org/project/mkv2cast/">PyPI Package</a></li>
+            </ul>
+          </body>
+          </html>
+          EOF
+      
+      - name: Commit and push to apt-repo branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create apt directory structure
+          mkdir -p apt
+          mv pool apt/ 2>/dev/null || true
+          mv dists apt/ 2>/dev/null || true
+          mv index.html apt/ 2>/dev/null || true
+          
+          git add -A
+          git commit -m "Update APT repository for ${GITHUB_REF#refs/tags/}" || echo "No changes to commit"
+          git push origin apt-repo --force
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

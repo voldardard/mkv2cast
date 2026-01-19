@@ -6,9 +6,10 @@ mkv2cast supports hardware-accelerated encoding for faster conversions.
 Supported Backends
 ------------------
 
-- **VAAPI** - Video Acceleration API (AMD, Intel)
+- **NVENC** - NVIDIA GPU encoding (fastest)
 - **QSV** - Intel Quick Sync Video
-- **CPU** - Software encoding with libx264
+- **VAAPI** - Video Acceleration API (AMD, Intel)
+- **CPU** - Software encoding with libx264 (most compatible)
 
 Backend Selection
 -----------------
@@ -19,15 +20,46 @@ Backend Selection
 
    mkv2cast --hw auto
 
-The auto mode tests backends in order: QSV → VAAPI → CPU
+The auto mode tests backends in order: NVENC → QSV → VAAPI → CPU
 
 **Force specific backend:**
 
 .. code-block:: bash
 
-   mkv2cast --hw vaapi
-   mkv2cast --hw qsv
-   mkv2cast --hw cpu
+   mkv2cast --hw nvenc   # NVIDIA GPU
+   mkv2cast --hw qsv     # Intel Quick Sync
+   mkv2cast --hw vaapi   # Intel/AMD VAAPI
+   mkv2cast --hw cpu     # Software encoding
+
+NVIDIA NVENC
+------------
+
+NVENC provides the fastest encoding on NVIDIA GPUs (GTX 600+ series).
+
+**Enable NVENC:**
+
+.. code-block:: bash
+
+   mkv2cast --hw nvenc
+
+**Quality parameter (0-51, lower = better):**
+
+.. code-block:: bash
+
+   # High quality
+   mkv2cast --hw nvenc --nvenc-cq 20
+
+   # Default quality
+   mkv2cast --hw nvenc --nvenc-cq 23
+
+   # Lower quality, faster
+   mkv2cast --hw nvenc --nvenc-cq 28
+
+**Requirements:**
+
+- NVIDIA GPU (GTX 600+ series, or RTX)
+- NVIDIA drivers installed
+- FFmpeg compiled with NVENC support
 
 VAAPI Configuration
 -------------------
@@ -125,6 +157,8 @@ Approximate encoding speed on typical hardware:
 +----------+-------------+------------------+
 | Backend  | Speed (fps) | Quality          |
 +==========+=============+==================+
+| NVENC    | 300-500     | Good             |
++----------+-------------+------------------+
 | QSV      | 200-400     | Good             |
 +----------+-------------+------------------+
 | VAAPI    | 150-300     | Good             |
@@ -136,6 +170,12 @@ Approximate encoding speed on typical hardware:
 
 Troubleshooting
 ---------------
+
+**NVENC not detected:**
+
+1. Check NVIDIA driver: ``nvidia-smi``
+2. Check encoder: ``ffmpeg -encoders | grep nvenc``
+3. Install CUDA toolkit if needed
 
 **VAAPI not detected:**
 

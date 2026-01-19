@@ -173,6 +173,22 @@ Examples:
     scan_group.add_argument("--include-pattern", "-i", action="append", default=[], metavar="PATTERN")
     scan_group.add_argument("--include-path", action="append", default=[], metavar="PATH")
 
+    # Watch mode
+    watch_group = parser.add_argument_group(_("Watch mode"))
+    watch_group.add_argument(
+        "--watch",
+        "-w",
+        action="store_true",
+        default=False,
+        help=_("Watch directory for new MKV files and convert automatically"),
+    )
+    watch_group.add_argument(
+        "--watch-interval",
+        type=float,
+        default=5.0,
+        help=_("Polling interval in seconds for watch mode (default: 5)"),
+    )
+
     # Debug/test
     debug_group = parser.add_argument_group(_("Debug/test"))
     debug_group.add_argument("-d", "--debug", action="store_true", help=_("Enable debug output"))
@@ -200,10 +216,50 @@ Examples:
 
     # Hardware acceleration
     hw_group = parser.add_argument_group(_("Hardware acceleration"))
-    hw_group.add_argument("--hw", choices=["auto", "qsv", "vaapi", "cpu"], default="auto")
+    hw_group.add_argument("--hw", choices=["auto", "nvenc", "qsv", "vaapi", "cpu"], default="auto")
     hw_group.add_argument("--vaapi-device", default="/dev/dri/renderD128")
     hw_group.add_argument("--vaapi-qp", type=int, default=23)
     hw_group.add_argument("--qsv-quality", type=int, default=23)
+    hw_group.add_argument("--nvenc-cq", type=int, default=23, help=_("NVENC constant quality (0-51)"))
+
+    # Audio track selection
+    audio_group = parser.add_argument_group(_("Audio track selection"))
+    audio_group.add_argument(
+        "--audio-lang",
+        type=str,
+        default=None,
+        help=_("Comma-separated language codes priority (e.g., fre,fra,fr,eng)"),
+    )
+    audio_group.add_argument(
+        "--audio-track", type=int, default=None, help=_("Explicit audio track index (0-based)")
+    )
+
+    # Subtitle selection
+    subtitle_group = parser.add_argument_group(_("Subtitle selection"))
+    subtitle_group.add_argument(
+        "--subtitle-lang",
+        type=str,
+        default=None,
+        help=_("Comma-separated subtitle language codes (e.g., fre,eng)"),
+    )
+    subtitle_group.add_argument(
+        "--subtitle-track", type=int, default=None, help=_("Explicit subtitle track index (0-based)")
+    )
+    subtitle_group.add_argument(
+        "--prefer-forced-subs",
+        action="store_true",
+        default=True,
+        help=_("Prefer forced subtitles in audio language (default: True)"),
+    )
+    subtitle_group.add_argument(
+        "--no-forced-subs",
+        action="store_true",
+        default=False,
+        help=_("Don't prefer forced subtitles"),
+    )
+    subtitle_group.add_argument(
+        "--no-subtitles", action="store_true", default=False, help=_("Disable all subtitles")
+    )
 
     # Integrity checks
     integrity_group = parser.add_argument_group(_("Integrity checks"))
@@ -284,6 +340,13 @@ Examples:
         vaapi_device=parsed_args.vaapi_device,
         vaapi_qp=parsed_args.vaapi_qp,
         qsv_quality=parsed_args.qsv_quality,
+        nvenc_cq=parsed_args.nvenc_cq,
+        audio_lang=parsed_args.audio_lang,
+        audio_track=parsed_args.audio_track,
+        subtitle_lang=parsed_args.subtitle_lang,
+        subtitle_track=parsed_args.subtitle_track,
+        prefer_forced_subs=not parsed_args.no_forced_subs,
+        no_subtitles=parsed_args.no_subtitles,
         integrity_check=parsed_args.integrity_check,
         stable_wait=parsed_args.stable_wait,
         deep_check=parsed_args.deep_check,
@@ -1207,6 +1270,55 @@ def main_pipeline(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, i
     return ok, skipped, failed, 1 if interrupted else 0, interrupted
 
 
+def run_watch_mode(single: Optional[Path], cfg: Config, interval: float) -> int:
+    """Run in watch mode, monitoring directory for new MKV files."""
+    from mkv2cast.watcher import watch_directory
+
+    # Determine watch path
+    if single and single.is_dir():
+        watch_path = single
+    elif single and single.is_file():
+        watch_path = single.parent
+    else:
+        watch_path = Path.cwd()
+
+    print(f"mkv2cast v{__version__} - {_('Watch Mode')}")
+    print()
+
+    def convert_single(filepath: Path) -> None:
+        """Convert a single file when detected."""
+        from mkv2cast.converter import convert_file, pick_backend
+
+        backend = pick_backend(cfg)
+        print(f"[{_('NEW')}] {filepath.name}")
+
+        success, output_path, message = convert_file(
+            input_path=filepath,
+            cfg=cfg,
+            backend=backend,
+        )
+
+        if success:
+            if output_path:
+                print(f"  [✓] {_('Converted')}: {output_path.name}")
+            else:
+                print(f"  [⊘] {_('Skipped')}: {message}")
+        else:
+            print(f"  [✗] {_('Failed')}: {message}")
+
+    try:
+        watch_directory(
+            path=watch_path,
+            convert_callback=convert_single,
+            cfg=cfg,
+            interval=interval,
+        )
+    except KeyboardInterrupt:
+        print(f"\n{_('Interrupted')}")
+
+    return 0
+
+
 def main() -> int:
     """Main entry point."""
     global APP_DIRS, HISTORY_DB
@@ -1250,6 +1362,15 @@ def main() -> int:
     result = handle_utility_commands(cfg, _util_args)
     if result is not None:
         return result
+
+    # Handle watch mode
+    _watch_parser = argparse.ArgumentParser(add_help=False)
+    _watch_parser.add_argument("--watch", "-w", action="store_true")
+    _watch_parser.add_argument("--watch-interval", type=float, default=5.0)
+    _watch_args, _ = _watch_parser.parse_known_args()
+
+    if _watch_args.watch:
+        return run_watch_mode(single, cfg, _watch_args.watch_interval)
 
     # Run main processing
     start_time = time.time()
