@@ -1,5 +1,9 @@
 # mkv2cast
 
+<p align="center">
+  <img src="images/mkv2cast-logo.svg" alt="mkv2cast logo" width="280">
+</p>
+
 <!-- Badges de statut -->
 [![CI](https://github.com/voldardard/mkv2cast/actions/workflows/ci.yml/badge.svg)](https://github.com/voldardard/mkv2cast/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/github/actions/workflow/status/voldardard/mkv2cast/ci.yml?label=tests)](https://github.com/voldardard/mkv2cast/actions/workflows/ci.yml)

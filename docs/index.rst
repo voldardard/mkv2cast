@@ -1,6 +1,11 @@
 mkv2cast Documentation
 ======================
 
+.. image:: _static/mkv2cast-logo.svg
+   :alt: mkv2cast logo
+   :align: center
+   :width: 260px
+
 **mkv2cast** is a smart MKV to Chromecast-compatible converter with hardware acceleration support.
 
 .. image:: https://github.com/voldardard/mkv2cast/actions/workflows/ci.yml/badge.svg
