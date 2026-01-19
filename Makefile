@@ -1,37 +1,112 @@
 # mkv2cast Makefile
 
-.PHONY: all build install clean test lint translations help version release
+.PHONY: all build install clean test lint translations help version release deploy format check
 
 PYTHON ?= python3
 PIP ?= pip3
 LOCALES_DIR = src/mkv2cast/locales
 LANGUAGES = en fr es it de
+CURRENT_VERSION := $(shell grep -Po '__version__ = "\K[^"]+' src/mkv2cast/__init__.py 2>/dev/null || echo "unknown")
 
 all: translations build
 
 help:
 	@echo "mkv2cast build commands:"
-	@echo "  make translations  - Compile .po files to .mo files"
-	@echo "  make build         - Build Python package"
-	@echo "  make install       - Install package in dev mode"
-	@echo "  make test          - Run unit tests"
-	@echo "  make lint          - Run linter (ruff)"
-	@echo "  make clean         - Remove build artifacts"
-	@echo "  make all           - translations + build"
-	@echo "  make version       - Show current version"
-	@echo "  make release V=x.y.z - Change version and build"
+	@echo ""
+	@echo "  Development:"
+	@echo "    make install      - Install package in dev mode"
+	@echo "    make test         - Run unit tests"
+	@echo "    make lint         - Run linter (ruff check)"
+	@echo "    make format       - Format code with ruff"
+	@echo "    make check        - Run all checks (lint + test)"
+	@echo ""
+	@echo "  Build:"
+	@echo "    make translations - Compile .po files to .mo files"
+	@echo "    make build        - Build Python package"
+	@echo "    make clean        - Remove build artifacts"
+	@echo "    make all          - translations + build"
+	@echo ""
+	@echo "  Release:"
+	@echo "    make version      - Show current version"
+	@echo "    make release V=x.y.z - Bump version, run checks, and build"
+	@echo "    make deploy V=x.y.z  - Full release: bump, check, build, commit, tag, push"
+	@echo ""
+	@echo "  Current version: $(CURRENT_VERSION)"
 
 version:
-	@grep -Po '__version__ = "\K[^"]+' src/mkv2cast/__init__.py
+	@echo "$(CURRENT_VERSION)"
 
+# Bump version, run checks, and build
 release:
 ifndef V
 	$(error Usage: make release V=1.2.0)
 endif
-	@echo "Bumping version to $(V)..."
+	@echo "══════════════════════════════════════════════════════"
+	@echo "  Preparing release v$(V)"
+	@echo "══════════════════════════════════════════════════════"
+	@echo ""
+	@echo "→ Bumping version to $(V)..."
 	@./scripts/bump_version.sh $(V)
+	@echo ""
+	@echo "→ Cleaning build artifacts..."
 	@$(MAKE) clean
+	@echo ""
+	@echo "→ Running checks..."
+	@$(MAKE) check
+	@echo ""
+	@echo "→ Building package..."
 	@$(MAKE) all
+	@echo ""
+	@echo "══════════════════════════════════════════════════════"
+	@echo "  ✓ Release v$(V) prepared successfully!"
+	@echo ""
+	@echo "  Next steps:"
+	@echo "    make deploy V=$(V)   # Commit, tag, and push"
+	@echo "══════════════════════════════════════════════════════"
+
+# Full deployment: release + git operations
+deploy:
+ifndef V
+	$(error Usage: make deploy V=1.2.0)
+endif
+	@echo "══════════════════════════════════════════════════════"
+	@echo "  Deploying release v$(V)"
+	@echo "══════════════════════════════════════════════════════"
+	@echo ""
+	@# Check if working directory is clean (except for version changes)
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "→ Staging all changes..."; \
+		git add -A; \
+	fi
+	@echo "→ Committing release..."
+	@git commit -m "chore: release v$(V)" --allow-empty
+	@echo ""
+	@echo "→ Creating tag v$(V)..."
+	@git tag -d v$(V) 2>/dev/null || true
+	@git tag v$(V) -m "Release v$(V)"
+	@echo ""
+	@echo "→ Pushing to origin..."
+	@git push origin HEAD --tags
+	@echo ""
+	@echo "══════════════════════════════════════════════════════"
+	@echo "  ✓ Release v$(V) deployed!"
+	@echo ""
+	@echo "  GitHub Actions will now:"
+	@echo "    • Run CI tests"
+	@echo "    • Build documentation"
+	@echo "    • Publish to PyPI"
+	@echo ""
+	@echo "  Monitor: https://github.com/voldardard/mkv2cast/actions"
+	@echo "══════════════════════════════════════════════════════"
+
+# Run all checks
+check: lint test
+	@echo "✓ All checks passed!"
+
+# Format code
+format:
+	$(PYTHON) -m ruff format src/ tests/
+	$(PYTHON) -m ruff check --fix src/ tests/
 
 translations:
 	@echo "Compiling translation files..."

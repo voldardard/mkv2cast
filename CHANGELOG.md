@@ -7,11 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.1.1] - 2026-01-19
+
 ### Added
+- GitHub Actions CI/CD pipeline with automated testing and PyPI publishing
+- GitHub Pages documentation deployment
+- Makefile with `make release` and `make deploy` commands for simplified releases
+- Status badges in README (CI, tests, docs, PyPI version, downloads)
+- Code formatting with `ruff format`
+
+### Changed
+- Improved Makefile help with categorized commands
+- Better release workflow with pre-flight checks
+
+### Fixed
+- Ruff formatting applied to all source files
+- Documentation workflow resilience when Pages not configured
+
+---
+
+## [1.1.0] - 2026-01-19
+
+### Added
+- **Python Package**: Full refactoring into proper Python package (`pip install mkv2cast`)
+- **Internationalization (i18n)**: Support for 5 languages (EN, FR, ES, DE, IT)
+- **Multi-threaded pipeline**: Parallel integrity checking and encoding workers
+- **Rich UI**: Beautiful terminal interface with live progress display
+- **Unit tests**: Comprehensive test suite with 136+ tests
+- **Documentation**: Sphinx-based documentation with RTD theme
+- **Packaging**: Support for PyPI, Arch Linux (PKGBUILD), and Debian
 - `--history N` now accepts optional number of lines (default: 20, max: 1000)
 - System-wide cleanup: `--clean-tmp` and `--clean-logs` now clean all users when run as root
 - System-wide systemd timer and service files for automated multi-user cleanup
-- `.gitignore` file for contributors
 - Better terminal width detection for history display
 
 ### Changed

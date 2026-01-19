@@ -1,12 +1,19 @@
 # mkv2cast
 
-[![PyPI](https://img.shields.io/pypi/v/mkv2cast.svg)](https://pypi.org/project/mkv2cast/)
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/voldardard/mkv2cast)
-[![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-green.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Python](https://img.shields.io/badge/python-3.8+-yellow.svg)](https://www.python.org/)
-[![Platform](https://img.shields.io/badge/platform-Linux-lightgrey.svg)](https://www.linux.org/)
+<!-- Badges de statut -->
 [![CI](https://github.com/voldardard/mkv2cast/actions/workflows/ci.yml/badge.svg)](https://github.com/voldardard/mkv2cast/actions/workflows/ci.yml)
-[![Documentation](https://img.shields.io/badge/docs-online-blue.svg)](https://mkv2cast.readthedocs.io)
+[![Tests](https://img.shields.io/github/actions/workflow/status/voldardard/mkv2cast/ci.yml?label=tests)](https://github.com/voldardard/mkv2cast/actions/workflows/ci.yml)
+[![Documentation](https://github.com/voldardard/mkv2cast/actions/workflows/docs.yml/badge.svg)](https://github.com/voldardard/mkv2cast/actions/workflows/docs.yml)
+
+<!-- Badges de version -->
+[![PyPI](https://img.shields.io/pypi/v/mkv2cast.svg)](https://pypi.org/project/mkv2cast/)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/mkv2cast)](https://pypi.org/project/mkv2cast/)
+[![Python](https://img.shields.io/pypi/pyversions/mkv2cast.svg)](https://pypi.org/project/mkv2cast/)
+
+<!-- Badges de projet -->
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-green.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Platform](https://img.shields.io/badge/platform-Linux-lightgrey.svg)](https://www.linux.org/)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
 **Smart MKV to Chromecast-compatible converter with hardware acceleration**
 
