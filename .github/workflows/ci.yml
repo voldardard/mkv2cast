@@ -181,11 +181,43 @@ jobs:
       id-token: write
 
     steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          name: dist
-          path: dist/
+          python-version: "3.12"
+
+      - name: Convert patch release to PEP 440 format for PyPI
+        id: convert-version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          # Convert 1.2.7-1 to 1.2.7.post1 for PyPI (PEP 440 compatible)
+          if [[ "$VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)$ ]]; then
+            BASE_VERSION="${BASH_REMATCH[1]}"
+            PATCH_NUM="${BASH_REMATCH[2]}"
+            PYPI_VERSION="${BASE_VERSION}.post${PATCH_NUM}"
+            echo "Converting version: $VERSION → $PYPI_VERSION (PEP 440 format)"
+            # Update version in __init__.py temporarily for PyPI build
+            sed -i "s/__version__ = \".*\"/__version__ = \"$PYPI_VERSION\"/" src/mkv2cast/__init__.py
+          else
+            PYPI_VERSION="$VERSION"
+            echo "Version already in PEP 440 format: $PYPI_VERSION"
+          fi
+          echo "pypi_version=$PYPI_VERSION" >> $GITHUB_OUTPUT
+          echo "original_version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Build package with PEP 440 version
+        run: python -m build
+
+      - name: Restore original version
+        if: steps.convert-version.outputs.pypi_version != steps.convert-version.outputs.original_version
+        run: |
+          sed -i "s/__version__ = \".*\"/__version__ = \"${{ steps.convert-version.outputs.original_version }}\"/" src/mkv2cast/__init__.py
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

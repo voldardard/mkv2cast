@@ -94,9 +94,11 @@ mkv2cast uses semantic versioning with support for patch releases:
 - **Pre-releases**: `X.Y.Z-beta.N`, `X.Y.Z-alpha.N`, `X.Y.Z-rc.N` (e.g., `1.2.0-beta.1`)
 
 Patch releases (format `X.Y.Z-N`) are treated as stable releases and will:
-- Be published to PyPI
+- Be published to PyPI (automatically converted to PEP 440 format: `X.Y.Z.postN`)
 - Trigger AUR and Debian package builds
 - Not be treated as beta/alpha/rc releases
+
+**Note on PyPI compatibility**: PyPI follows PEP 440 which doesn't support the `-N` format. Patch releases are automatically converted to `X.Y.Z.postN` format when publishing to PyPI (e.g., `1.2.7-1` becomes `1.2.7.post1` on PyPI). The original format `1.2.7-1` is preserved in Git tags and other package formats.
 
 For AUR packages, patch releases are converted to `pkgver=X.Y.Z` and `pkgrel=N` format.
 
