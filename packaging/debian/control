@@ -17,6 +17,8 @@ Rules-Requires-Root: no
 Package: mkv2cast
 Architecture: all
 Depends: ${python3:Depends}, ${misc:Depends}, python3, ffmpeg
+Provides: python3-mkv2cast
+Conflicts: python3-mkv2cast
 Recommends: python3-rich, libnotify-bin
 Suggests: python3-tomli, python3-plyer
 Description: Smart MKV to Chromecast-compatible converter

@@ -16,7 +16,7 @@ from mkv2cast.integrity import check_file_stable
 
 # Try to import watchdog for efficient file system monitoring
 try:
-    from watchdog.events import FileSystemEventHandler, FileCreatedEvent, FileMovedEvent
+    from watchdog.events import FileCreatedEvent, FileMovedEvent, FileSystemEventHandler
     from watchdog.observers import Observer
 
     WATCHDOG_AVAILABLE = True

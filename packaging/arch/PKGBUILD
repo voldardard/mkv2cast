@@ -6,6 +6,8 @@ pkgdesc="Smart MKV to Chromecast-compatible converter with hardware acceleration
 arch=('any')
 url="https://github.com/voldardard/mkv2cast"
 license=('GPL3')
+provides=('python-mkv2cast')
+conflicts=('python-mkv2cast')
 depends=('python>=3.8' 'ffmpeg')
 optdepends=(
     'python-rich: Beautiful progress UI with colors and animations'

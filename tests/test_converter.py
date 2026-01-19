@@ -239,6 +239,7 @@ class TestGetOutputTag:
             vlevel=51,
             acodec="aac",
             ach=2,
+            alang="fre",
             format_name="matroska",
         )
 
@@ -263,6 +264,7 @@ class TestGetOutputTag:
             vlevel=41,
             acodec="ac3",
             ach=6,
+            alang="eng",
             format_name="matroska",
         )
 
@@ -287,6 +289,7 @@ class TestGetOutputTag:
             vlevel=51,
             acodec="ac3",
             ach=6,
+            alang="fre",
             format_name="matroska",
         )
 
@@ -311,6 +314,7 @@ class TestGetOutputTag:
             vlevel=41,
             acodec="aac",
             ach=2,
+            alang="eng",
             format_name="matroska",
         )
 
