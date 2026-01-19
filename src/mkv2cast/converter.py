@@ -1069,9 +1069,7 @@ def convert_file(
 
     # Run ffmpeg with progress parsing if callback is provided
     if progress_callback is not None:
-        return _run_ffmpeg_with_callback(
-            cmd, tmp_path, output_path, stage, dur_ms, input_path, progress_callback
-        )
+        return _run_ffmpeg_with_callback(cmd, tmp_path, output_path, stage, dur_ms, input_path, progress_callback)
     else:
         # Original behavior without callback
         try:
@@ -1153,12 +1151,7 @@ def _run_ffmpeg_with_callback(
                 last_progress = progress_data["progress_percent"]
 
                 # Calculate ETA
-                eta = calculate_eta(
-                    progress_data["current_time_ms"],
-                    dur_ms,
-                    progress_data["speed"],
-                    start_time
-                )
+                eta = calculate_eta(progress_data["current_time_ms"], dur_ms, progress_data["speed"], start_time)
 
                 try:
                     progress_dict = _make_progress_dict(
@@ -1318,10 +1311,7 @@ def convert_batch(
     # Process files in parallel
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit all tasks
-        futures = {
-            executor.submit(process_file, path): path
-            for path in input_paths
-        }
+        futures = {executor.submit(process_file, path): path for path in input_paths}
 
         # Collect results as they complete
         for future in as_completed(futures):
@@ -1337,9 +1327,6 @@ def convert_batch(
 
                 # Signal failure via callback
                 if progress_callback:
-                    thread_safe_callback(
-                        input_path,
-                        _make_progress_dict(stage="failed", error=str(e))
-                    )
+                    thread_safe_callback(input_path, _make_progress_dict(stage="failed", error=str(e)))
 
     return results

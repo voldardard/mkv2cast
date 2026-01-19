@@ -77,6 +77,9 @@ endif
 	@echo "  Deploying release v$(V)"
 	@echo "══════════════════════════════════════════════════════"
 	@echo ""
+	@echo "→ Formatting code..."
+	@$(MAKE) format
+	@echo ""
 	@# Check if working directory is clean (except for version changes)
 	@if [ -n "$$(git status --porcelain)" ]; then \
 		echo "→ Staging all changes..."; \
@@ -106,14 +109,15 @@ endif
 	@echo "  Monitor: https://github.com/voldardard/mkv2cast/actions"
 	@echo "══════════════════════════════════════════════════════"
 
-# Run all checks
-check: lint test
+# Run all checks (format first, then lint, then test)
+check: format lint test
 	@echo "✓ All checks passed!"
 
-# Format code
+# Format code (auto-fix issues)
 format:
-	$(PYTHON) -m ruff format src/ tests/
-	$(PYTHON) -m ruff check --fix src/ tests/
+	@echo "→ Formatting code..."
+	@$(PYTHON) -m ruff format src/ tests/
+	@$(PYTHON) -m ruff check --fix src/ tests/ 2>/dev/null || true
 
 translations:
 	@echo "Compiling translation files..."

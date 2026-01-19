@@ -46,6 +46,7 @@ def is_script_mode() -> bool:
     # Check if being imported (not __main__)
     try:
         import __main__
+
         # If __main__ has no __file__, we're likely in an interactive session or import
         if not hasattr(__main__, "__file__"):
             return True
@@ -57,6 +58,7 @@ def is_script_mode() -> bool:
         pass
 
     return False
+
 
 # Try TOML support (Python 3.11+ or tomli package)
 try:
