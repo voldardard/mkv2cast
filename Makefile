@@ -1,6 +1,6 @@
 # mkv2cast Makefile
 
-.PHONY: all build install clean test lint translations help version release deploy format check
+.PHONY: all build install clean test lint translations help version release deploy format check deb aur-srcinfo
 
 PYTHON ?= python3
 PIP ?= pip3
@@ -30,6 +30,10 @@ help:
 	@echo "    make version      - Show current version"
 	@echo "    make release V=x.y.z - Bump version, run checks, and build"
 	@echo "    make deploy V=x.y.z  - Full release: bump, check, build, commit, tag, push"
+	@echo ""
+	@echo "  Packaging:"
+	@echo "    make deb          - Build Debian package (requires devscripts)"
+	@echo "    make aur-srcinfo  - Generate .SRCINFO for AUR"
 	@echo ""
 	@echo "  Current version: $(CURRENT_VERSION)"
 
@@ -136,3 +140,29 @@ clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name "*.pyc" -delete 2>/dev/null || true
 	find . -type f -name "*.mo" -delete 2>/dev/null || true
+
+# ==================== Package Building ====================
+
+# Build Debian package (requires: devscripts debhelper dh-python)
+deb:
+	@echo "Building Debian package..."
+	@if ! command -v dpkg-buildpackage >/dev/null 2>&1; then \
+		echo "Error: dpkg-buildpackage not found. Install devscripts:"; \
+		echo "  sudo apt install devscripts debhelper dh-python"; \
+		exit 1; \
+	fi
+	@mkdir -p build-deb
+	@cp -r src pyproject.toml README.md LICENSE CHANGELOG.md man completions systemd build-deb/
+	@cp -r packaging/debian build-deb/
+	@cd build-deb && dpkg-buildpackage -us -uc -b
+	@echo "Package built: $$(ls build-deb/../*.deb 2>/dev/null || echo 'check parent directory')"
+
+# Generate .SRCINFO for AUR (requires: makepkg from pacman)
+aur-srcinfo:
+	@echo "Generating .SRCINFO for AUR..."
+	@if ! command -v makepkg >/dev/null 2>&1; then \
+		echo "Error: makepkg not found. This target requires Arch Linux."; \
+		exit 1; \
+	fi
+	@cd packaging/arch && makepkg --printsrcinfo > .SRCINFO
+	@echo "Generated: packaging/arch/.SRCINFO"

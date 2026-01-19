@@ -51,7 +51,7 @@ mkv2cast = "mkv2cast.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/voldardard/mkv2cast"
-Documentation = "https://mkv2cast.readthedocs.io"
+Documentation = "https://voldardard.github.io/mkv2cast"
 Repository = "https://github.com/voldardard/mkv2cast"
 Issues = "https://github.com/voldardard/mkv2cast/issues"
 Changelog = "https://github.com/voldardard/mkv2cast/blob/main/CHANGELOG.md"

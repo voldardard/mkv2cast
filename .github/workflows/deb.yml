@@ -1,0 +1,69 @@
+name: Debian Package
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-deb:
+    name: Build Debian Package
+    runs-on: ubuntu-latest
+    # Only run for stable releases (not pre-releases)
+    if: "!github.event.release.prerelease"
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building Debian package for version: $VERSION"
+      
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            devscripts \
+            debhelper \
+            dh-python \
+            python3-all \
+            python3-build \
+            python3-installer \
+            python3-hatchling \
+            fakeroot
+      
+      - name: Update changelog version
+        run: |
+          cd packaging/debian
+          # Update the version in changelog
+          sed -i "1s/([^)]*)/(${{ steps.version.outputs.version }}-1)/" changelog
+          cat changelog
+      
+      - name: Prepare source directory
+        run: |
+          # Create a clean source directory for building
+          mkdir -p build-deb
+          cp -r src pyproject.toml README.md LICENSE CHANGELOG.md man completions systemd build-deb/
+          cp -r packaging/debian build-deb/
+      
+      - name: Build Debian package
+        run: |
+          cd build-deb
+          dpkg-buildpackage -us -uc -b
+      
+      - name: List built packages
+        run: |
+          ls -la *.deb 2>/dev/null || ls -la build-deb/../*.deb 2>/dev/null || echo "Looking for .deb files..."
+          find . -name "*.deb" -type f
+      
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            *.deb
+            build-deb/../*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

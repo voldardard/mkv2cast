@@ -76,7 +76,7 @@ Convert your MKV video files to formats compatible with Chromecast devices and S
 | **License** | GPL-3.0 |
 | **Repository** | https://github.com/voldardard/mkv2cast |
 | **PyPI** | https://pypi.org/project/mkv2cast/ |
-| **Documentation** | https://mkv2cast.readthedocs.io |
+| **Documentation** | https://voldardard.github.io/mkv2cast |
 
 ---
 

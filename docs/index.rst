@@ -3,9 +3,21 @@ mkv2cast Documentation
 
 **mkv2cast** is a smart MKV to Chromecast-compatible converter with hardware acceleration support.
 
+.. image:: https://github.com/voldardard/mkv2cast/actions/workflows/ci.yml/badge.svg
+   :target: https://github.com/voldardard/mkv2cast/actions/workflows/ci.yml
+   :alt: CI
+
+.. image:: https://github.com/voldardard/mkv2cast/actions/workflows/docs.yml/badge.svg
+   :target: https://github.com/voldardard/mkv2cast/actions/workflows/docs.yml
+   :alt: Documentation
+
 .. image:: https://img.shields.io/pypi/v/mkv2cast.svg
    :target: https://pypi.org/project/mkv2cast/
    :alt: PyPI version
+
+.. image:: https://img.shields.io/pypi/dm/mkv2cast
+   :target: https://pypi.org/project/mkv2cast/
+   :alt: Downloads
 
 .. image:: https://img.shields.io/pypi/pyversions/mkv2cast.svg
    :target: https://pypi.org/project/mkv2cast/
@@ -14,6 +26,10 @@ mkv2cast Documentation
 .. image:: https://img.shields.io/github/license/voldardard/mkv2cast.svg
    :target: https://github.com/voldardard/mkv2cast/blob/main/LICENSE
    :alt: License
+
+.. image:: https://img.shields.io/badge/code%20style-ruff-000000.svg
+   :target: https://github.com/astral-sh/ruff
+   :alt: Ruff
 
 Features
 --------

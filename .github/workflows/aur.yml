@@ -1,0 +1,40 @@
+name: AUR Publish
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  aur:
+    name: Publish to AUR
+    runs-on: ubuntu-latest
+    # Only run for stable releases (not pre-releases)
+    if: "!github.event.release.prerelease"
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Releasing version: $VERSION"
+      
+      - name: Update PKGBUILD version
+        run: |
+          sed -i "s/pkgver=.*/pkgver=${{ steps.version.outputs.version }}/" packaging/arch/PKGBUILD
+          sed -i "s/pkgrel=.*/pkgrel=1/" packaging/arch/PKGBUILD
+          cat packaging/arch/PKGBUILD
+      
+      - name: Publish to AUR
+        uses: KSXGitHub/github-actions-deploy-aur@v2.7.2
+        with:
+          pkgname: mkv2cast
+          pkgbuild: packaging/arch/PKGBUILD
+          commit_username: ${{ secrets.AUR_USERNAME }}
+          commit_email: ${{ secrets.AUR_EMAIL }}
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "Update to version ${{ steps.version.outputs.version }}"
+          force_push: true

@@ -19,7 +19,7 @@
 set -e
 
 # ==================== Configuration ====================
-VERSION="1.0.0"
+VERSION="1.1.1"
 REPO_URL="https://github.com/voldardard/mkv2cast"
 RAW_URL="https://raw.githubusercontent.com/voldardard/mkv2cast/main"
 ARCHIVE_URL="https://github.com/voldardard/mkv2cast/archive/refs/heads/main.tar.gz"
