@@ -11,10 +11,10 @@ jobs:
   aur:
     name: Publish to AUR
     runs-on: ubuntu-latest
-    # Only run for stable releases (not pre-releases)
+    # Only run for stable releases (includes patch releases like 1.1.1-1, but not beta/alpha/rc)
     if: |
       (github.event_name == 'release' && !github.event.release.prerelease) ||
-      (github.event_name != 'release' && !contains(github.ref, '-beta') && !contains(github.ref, '-alpha') && !contains(github.ref, '-rc'))
+      (github.event_name != 'release' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-beta') && !contains(github.ref, '-alpha') && !contains(github.ref, '-rc'))
     
     steps:
       - name: Checkout
@@ -27,10 +27,27 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Releasing version: $VERSION"
       
+      - name: Parse version (extract base and patch)
+        id: parse
+        run: |
+          source scripts/parse_version.sh "${{ steps.version.outputs.version }}"
+          echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
+          echo "patch_number=$PATCH_NUMBER" >> $GITHUB_OUTPUT
+          echo "Base version: $BASE_VERSION"
+          echo "Patch number: $PATCH_NUMBER"
+      
       - name: Update PKGBUILD version
         run: |
-          sed -i "s/pkgver=.*/pkgver=${{ steps.version.outputs.version }}/" packaging/arch/PKGBUILD
-          sed -i "s/pkgrel=.*/pkgrel=1/" packaging/arch/PKGBUILD
+          # Use base version for pkgver (AUR doesn't allow hyphens in pkgver)
+          PKGVER="${{ steps.parse.outputs.base_version }}"
+          # Use patch number for pkgrel (or 1 if no patch)
+          PKGREL="${{ steps.parse.outputs.patch_number }}"
+          if [ "$PKGREL" = "0" ]; then
+            PKGREL="1"  # AUR pkgrel starts at 1
+          fi
+          sed -i "s/pkgver=.*/pkgver=$PKGVER/" packaging/arch/PKGBUILD
+          sed -i "s/pkgrel=.*/pkgrel=$PKGREL/" packaging/arch/PKGBUILD
+          echo "Updated PKGBUILD:"
           cat packaging/arch/PKGBUILD
       
       - name: Publish to AUR

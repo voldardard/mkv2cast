@@ -1,5 +1,6 @@
 #!/bin/bash
 # Usage: ./scripts/bump_version.sh 1.2.0
+#        ./scripts/bump_version.sh 1.2.0-1  (patch release)
 # Changes the version in the single source of truth: src/mkv2cast/__init__.py
 
 set -e
@@ -7,7 +8,8 @@ set -e
 if [ -z "$1" ]; then
     echo "Usage: $0 <new_version>"
     echo "Example: $0 1.2.0"
-    echo "         $0 1.2.0b1"
+    echo "         $0 1.2.0-1  (patch release)"
+    echo "         $0 1.2.0b1  (beta release)"
     exit 1
 fi
 
@@ -16,6 +18,19 @@ INIT_FILE="src/mkv2cast/__init__.py"
 
 if [ ! -f "$INIT_FILE" ]; then
     echo "Error: $INIT_FILE not found. Run from project root."
+    exit 1
+fi
+
+# Validate version format
+# Accepts: X.Y.Z or X.Y.Z-N or X.Y.ZbetaN or X.Y.Z-alpha.N or X.Y.Z-rc.N
+if ! echo "$NEW_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+|(-(beta|alpha|rc)(\.[0-9]+)?)?)?$'; then
+    echo "Error: Invalid version format: $NEW_VERSION"
+    echo "Valid formats:"
+    echo "  - X.Y.Z          (e.g., 1.2.0)"
+    echo "  - X.Y.Z-N        (e.g., 1.2.0-1 for patch releases)"
+    echo "  - X.Y.Z-beta.N   (e.g., 1.2.0-beta.1)"
+    echo "  - X.Y.Z-alpha.N  (e.g., 1.2.0-alpha.1)"
+    echo "  - X.Y.Z-rc.N     (e.g., 1.2.0-rc.1)"
     exit 1
 fi
 

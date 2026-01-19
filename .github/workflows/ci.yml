@@ -9,6 +9,41 @@ on:
     branches: [main]
 
 jobs:
+  detect-release-type:
+    name: Detect Release Type
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    outputs:
+      is-prerelease: ${{ steps.detect.outputs.is-prerelease }}
+      is-patch-release: ${{ steps.detect.outputs.is-patch-release }}
+      is-stable: ${{ steps.detect.outputs.is-stable }}
+    steps:
+      - name: Detect release type
+        id: detect
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          
+          # Check if it's a pre-release (beta, alpha, rc)
+          if [[ "$VERSION" =~ -(beta|alpha|rc) ]]; then
+            echo "is-prerelease=true" >> $GITHUB_OUTPUT
+            echo "is-patch-release=false" >> $GITHUB_OUTPUT
+            echo "is-stable=false" >> $GITHUB_OUTPUT
+          # Check if it's a patch release (ends with -N where N is a number)
+          elif [[ "$VERSION" =~ -[0-9]+$ ]]; then
+            echo "is-prerelease=false" >> $GITHUB_OUTPUT
+            echo "is-patch-release=true" >> $GITHUB_OUTPUT
+            echo "is-stable=true" >> $GITHUB_OUTPUT
+          # Otherwise it's a stable release
+          else
+            echo "is-prerelease=false" >> $GITHUB_OUTPUT
+            echo "is-patch-release=false" >> $GITHUB_OUTPUT
+            echo "is-stable=true" >> $GITHUB_OUTPUT
+          fi
+          echo "Version: $VERSION"
+          echo "Is pre-release: ${{ steps.detect.outputs.is-prerelease }}"
+          echo "Is patch release: ${{ steps.detect.outputs.is-patch-release }}"
+          echo "Is stable: ${{ steps.detect.outputs.is-stable }}"
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -110,9 +145,9 @@ jobs:
   # Release beta versions to TestPyPI for testing
   release-beta:
     name: Release to TestPyPI (Beta)
-    needs: [build]
-    # Only run on beta/rc/alpha tags
-    if: startsWith(github.ref, 'refs/tags/v') && (contains(github.ref, '-beta') || contains(github.ref, '-alpha') || contains(github.ref, '-rc'))
+    needs: [build, detect-release-type]
+    # Only run on beta/rc/alpha tags (not patch releases)
+    if: startsWith(github.ref, 'refs/tags/v') && needs.detect-release-type.outputs.is-prerelease == 'true'
     runs-on: ubuntu-latest
     environment:
       name: testpypi
@@ -135,9 +170,9 @@ jobs:
   # Release stable versions to PyPI
   release:
     name: Release to PyPI (Stable)
-    needs: [build]
-    # Only run on stable tags (no -beta, -alpha, -rc suffix)
-    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-beta') && !contains(github.ref, '-alpha') && !contains(github.ref, '-rc')
+    needs: [build, detect-release-type]
+    # Only run on stable tags (includes patch releases like 1.1.1-1)
+    if: startsWith(github.ref, 'refs/tags/v') && needs.detect-release-type.outputs.is-stable == 'true'
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -159,9 +194,9 @@ jobs:
   # This triggers aur.yml and deb.yml workflows
   create-release:
     name: Create GitHub Release
-    needs: [release]
-    # Only run on stable tags (no -beta, -alpha, -rc suffix)
-    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-beta') && !contains(github.ref, '-alpha') && !contains(github.ref, '-rc')
+    needs: [release, detect-release-type]
+    # Only run on stable tags (includes patch releases like 1.1.1-1)
+    if: startsWith(github.ref, 'refs/tags/v') && needs.detect-release-type.outputs.is-stable == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write

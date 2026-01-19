@@ -85,6 +85,21 @@ Convert your MKV video files to formats compatible with Chromecast devices and S
 | **PyPI** | https://pypi.org/project/mkv2cast/ |
 | **Documentation** | https://voldardard.github.io/mkv2cast |
 
+### Version Format
+
+mkv2cast uses semantic versioning with support for patch releases:
+
+- **Standard releases**: `X.Y.Z` (e.g., `1.2.0`)
+- **Patch releases**: `X.Y.Z-N` (e.g., `1.2.0-1`, `1.2.0-2`) - Used for bug fixes and minor updates without changing the main version
+- **Pre-releases**: `X.Y.Z-beta.N`, `X.Y.Z-alpha.N`, `X.Y.Z-rc.N` (e.g., `1.2.0-beta.1`)
+
+Patch releases (format `X.Y.Z-N`) are treated as stable releases and will:
+- Be published to PyPI
+- Trigger AUR and Debian package builds
+- Not be treated as beta/alpha/rc releases
+
+For AUR packages, patch releases are converted to `pkgver=X.Y.Z` and `pkgrel=N` format.
+
 ---
 
 ## Purpose
