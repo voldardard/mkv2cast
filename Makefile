@@ -2,8 +2,14 @@
 
 .PHONY: all build install clean test lint translations help version release deploy format check deb aur-srcinfo
 
-PYTHON ?= python3
-PIP ?= pip3
+# Auto-detect venv if it exists
+ifeq ($(wildcard .venv/bin/python),)
+  PYTHON ?= python3
+  PIP ?= pip3
+else
+  PYTHON ?= .venv/bin/python
+  PIP ?= .venv/bin/pip
+endif
 LOCALES_DIR = src/mkv2cast/locales
 LANGUAGES = en fr es it de
 CURRENT_VERSION := $(shell grep -Po '__version__ = "\K[^"]+' src/mkv2cast/__init__.py 2>/dev/null || echo "unknown")

@@ -88,18 +88,38 @@ jobs:
     if: needs.build-deb.result == 'success'
     
     steps:
-      - name: Checkout
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          ref: apt-repo
           fetch-depth: 0
-        continue-on-error: true
       
-      - name: Create apt-repo branch if not exists
+      - name: Create or checkout apt-repo branch
         run: |
-          if [ ! -d ".git" ]; then
-            git clone https://github.com/${{ github.repository }}.git .
-            git checkout apt-repo 2>/dev/null || git checkout -b apt-repo
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Configure remote URL with token for authentication
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          
+          # Check if apt-repo branch exists remotely
+          if git ls-remote --heads origin apt-repo | grep -q apt-repo; then
+            echo "apt-repo branch exists, checking out..."
+            git fetch origin apt-repo
+            git checkout apt-repo
+          else
+            echo "apt-repo branch does not exist, creating it..."
+            # Create orphan branch (no history)
+            git checkout --orphan apt-repo
+            # Remove all files from staging
+            git rm -rf . || true
+            # Create initial commit with README
+            mkdir -p apt
+            echo "# mkv2cast APT Repository" > apt/README.md
+            git add apt/README.md
+            git commit -m "Initial APT repository structure"
+            # Push to create the branch remotely
+            git push origin apt-repo
           fi
       
       - name: Install APT tools
@@ -234,6 +254,9 @@ jobs:
             VERSION_REF="${{ github.event.release.tag_name }}"
           fi
           git commit -m "Update APT repository for ${VERSION_REF:-manual}" || echo "No changes to commit"
+          
+          # Configure remote URL with token for authentication
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          
+          # Push to apt-repo branch
           git push origin apt-repo --force
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
