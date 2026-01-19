@@ -1392,11 +1392,16 @@ def main() -> int:
 
         # Print summary (legacy mode)
         print()
-        print(f"=== {_('Summary')} ===")
-        print(f"{_('Transcoded OK')}: {ok}")
-        print(f"{_('Skipped')}: {skipped}")
-        print(f"{_('Failed')}: {failed}")
-        print(f"{_('Total time')}: {total_time}")
+        trans_summary = _("Summary")  # type: ignore[operator]
+        trans_ok = _("Transcoded OK")  # type: ignore[operator]
+        trans_skipped = _("Skipped")  # type: ignore[operator]
+        trans_failed = _("Failed")  # type: ignore[operator]
+        trans_time = _("Total time")  # type: ignore[operator]
+        print(f"=== {trans_summary} ===")
+        print(f"{trans_ok}: {ok}")
+        print(f"{trans_skipped}: {skipped}")
+        print(f"{trans_failed}: {failed}")
+        print(f"{trans_time}: {total_time}")
 
     # Send notification if enabled
     if cfg.notify:

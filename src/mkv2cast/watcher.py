@@ -9,12 +9,16 @@ import os
 import time
 from pathlib import Path
 from threading import Event, Thread
-from typing import Callable, Optional, Set
+from typing import Any, Callable, Optional, Set, TYPE_CHECKING
 
 from mkv2cast.config import Config
 from mkv2cast.integrity import check_file_stable
 
 # Try to import watchdog for efficient file system monitoring
+if TYPE_CHECKING:
+    from watchdog.events import FileCreatedEvent, FileMovedEvent, FileSystemEventHandler
+    from watchdog.observers import Observer
+
 try:
     from watchdog.events import FileCreatedEvent, FileMovedEvent, FileSystemEventHandler
     from watchdog.observers import Observer
@@ -22,6 +26,11 @@ try:
     WATCHDOG_AVAILABLE = True
 except ImportError:
     WATCHDOG_AVAILABLE = False
+    # Type stubs for mypy
+    Observer = None  # type: ignore
+    FileSystemEventHandler = None  # type: ignore
+    FileCreatedEvent = None  # type: ignore
+    FileMovedEvent = None  # type: ignore
 
 
 class MKVFileHandler:
@@ -88,21 +97,23 @@ if WATCHDOG_AVAILABLE:
             super().__init__()
             self.mkv_handler = mkv_handler
 
-        def on_created(self, event: FileCreatedEvent) -> None:
+        def on_created(self, event: "FileCreatedEvent") -> None:  # type: ignore[override]
             if not event.is_directory:
                 # Run in thread to not block the observer
+                src_path = str(event.src_path) if isinstance(event.src_path, bytes) else event.src_path
                 Thread(
                     target=self.mkv_handler.handle_file,
-                    args=(Path(event.src_path),),
+                    args=(Path(src_path),),
                     daemon=True,
                 ).start()
 
-        def on_moved(self, event: FileMovedEvent) -> None:
+        def on_moved(self, event: "FileMovedEvent") -> None:  # type: ignore[override]
             if not event.is_directory:
                 # Handle files moved into watched directory
+                dest_path = str(event.dest_path) if isinstance(event.dest_path, bytes) else event.dest_path
                 Thread(
                     target=self.mkv_handler.handle_file,
-                    args=(Path(event.dest_path),),
+                    args=(Path(dest_path),),
                     daemon=True,
                 ).start()
 
@@ -138,8 +149,8 @@ class DirectoryWatcher:
         self.interval = interval
         self.recursive = recursive
         self.stop_event = Event()
-        self._observer = None
-        self._poll_thread = None
+        self._observer: Optional[Any] = None
+        self._poll_thread: Optional[Thread] = None
 
         self.mkv_handler = MKVFileHandler(
             convert_callback=convert_callback,
@@ -156,10 +167,13 @@ class DirectoryWatcher:
 
     def _start_watchdog(self) -> None:
         """Start watching using watchdog."""
+        if not WATCHDOG_AVAILABLE:
+            return
         handler = WatchdogHandler(self.mkv_handler)
-        self._observer = Observer()
-        self._observer.schedule(handler, str(self.watch_path), recursive=self.recursive)
-        self._observer.start()
+        observer = Observer()
+        observer.schedule(handler, str(self.watch_path), recursive=self.recursive)
+        observer.start()
+        self._observer = observer
 
     def _start_polling(self) -> None:
         """Start watching using polling (fallback)."""
@@ -169,8 +183,9 @@ class DirectoryWatcher:
         self._scan_directory()
 
         # Start polling thread
-        self._poll_thread = Thread(target=self._polling_loop, daemon=True)
-        self._poll_thread.start()
+        poll_thread = Thread(target=self._polling_loop, daemon=True)
+        poll_thread.start()
+        self._poll_thread = poll_thread
 
     def _scan_directory(self) -> Set[Path]:
         """Scan directory for MKV files."""
@@ -182,9 +197,9 @@ class DirectoryWatcher:
                         if f.lower().endswith(".mkv"):
                             found.add(Path(root) / f)
             else:
-                for f in self.watch_path.iterdir():
-                    if f.is_file() and f.suffix.lower() == ".mkv":
-                        found.add(f)
+                for item in self.watch_path.iterdir():
+                    if item.is_file() and item.suffix.lower() == ".mkv":
+                        found.add(item)
         except OSError:
             pass
         return found
@@ -210,11 +225,12 @@ class DirectoryWatcher:
         """Stop watching."""
         self.stop_event.set()
 
-        if self._observer:
-            self._observer.stop()
-            self._observer.join(timeout=5)
+        if self._observer is not None:
+            # Observer has stop() and join() methods
+            self._observer.stop()  # type: ignore[attr-defined]
+            self._observer.join(timeout=5)  # type: ignore[attr-defined]
 
-        if self._poll_thread:
+        if self._poll_thread is not None:
             self._poll_thread.join(timeout=5)
 
     def wait(self) -> None:

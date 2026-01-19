@@ -554,7 +554,7 @@ def decide_for(path: Path, cfg: Optional[Config] = None) -> Decision:
     # Audio track selection using new function
     audio_stream, alang = select_audio_track(streams, cfg)
 
-    aidx = int(audio_stream.get("index")) if audio_stream else -1
+    aidx = int(audio_stream.get("index") or -1) if audio_stream else -1
     acodec = low((audio_stream or {}).get("codec_name", ""))
     ach = int((audio_stream or {}).get("channels") or 0)
 
@@ -565,7 +565,7 @@ def decide_for(path: Path, cfg: Optional[Config] = None) -> Decision:
     sforced = False
     if subtitle_result:
         sub_stream, sforced = subtitle_result
-        sidx = int(sub_stream.get("index"))
+        sidx = int(sub_stream.get("index") or -1)
         slang = (sub_stream.get("tags") or {}).get("language", "")
 
     pname = path.name.upper()
