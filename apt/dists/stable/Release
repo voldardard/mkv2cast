@@ -1,0 +1,23 @@
+Origin: mkv2cast
+Label: mkv2cast
+Suite: stable
+Codename: stable
+Version: 1.0
+Architectures: amd64 arm64 all
+Components: main
+Description: mkv2cast APT repository
+Date: Mon, 19 Jan 2026 21:03:49 +0000
+MD5Sum:
+ 56da5cf623a6b978ed01657701aa79c8 1261 main/binary-all/Packages
+ 0981b2c851f3d893e42d20691ca04607 782 main/binary-all/Packages.gz
+ 56da5cf623a6b978ed01657701aa79c8 1261 main/binary-amd64/Packages
+ 0981b2c851f3d893e42d20691ca04607 782 main/binary-amd64/Packages.gz
+ 56da5cf623a6b978ed01657701aa79c8 1261 main/binary-arm64/Packages
+ 0981b2c851f3d893e42d20691ca04607 782 main/binary-arm64/Packages.gz
+SHA256:
+ 3ade46e8ac00e40c0e659ad488b6ccbfd07b33c07a1048716489b883de256159 1261 main/binary-all/Packages
+ d44099df5846066eca4ff07929b90a4d5571b6ec7e81e11e19698568a6b16057 782 main/binary-all/Packages.gz
+ 3ade46e8ac00e40c0e659ad488b6ccbfd07b33c07a1048716489b883de256159 1261 main/binary-amd64/Packages
+ d44099df5846066eca4ff07929b90a4d5571b6ec7e81e11e19698568a6b16057 782 main/binary-amd64/Packages.gz
+ 3ade46e8ac00e40c0e659ad488b6ccbfd07b33c07a1048716489b883de256159 1261 main/binary-arm64/Packages
+ d44099df5846066eca4ff07929b90a4d5571b6ec7e81e11e19698568a6b16057 782 main/binary-arm64/Packages.gz

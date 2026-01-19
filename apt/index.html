@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>mkv2cast APT Repository</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+    h1 { color: #333; }
+    pre { background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
+    .note { background: #e7f3ff; border-left: 4px solid #2196F3; padding: 10px 15px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <h1>🎬 mkv2cast APT Repository</h1>
+  <p>This is the official APT repository for <a href="https://github.com/voldardard/mkv2cast">mkv2cast</a>.</p>
+  
+  <h2>Installation</h2>
+  <p>Add the repository to your system:</p>
+  <pre>
+# Add the repository
+echo "deb [trusted=yes] https://voldardard.github.io/mkv2cast/apt stable main" | sudo tee /etc/apt/sources.list.d/mkv2cast.list
+
+# Update and install
+sudo apt update
+sudo apt install mkv2cast
+  </pre>
+  
+  <div class="note">
+    <strong>Note:</strong> This repository uses <code>[trusted=yes]</code> as packages are not GPG signed.
+    For production use, consider using the PyPI package: <code>pip install mkv2cast</code>
+  </div>
+  
+  <h2>Alternative Installation Methods</h2>
+  <ul>
+    <li><strong>PyPI:</strong> <code>pip install mkv2cast</code></li>
+    <li><strong>AUR (Arch Linux):</strong> <code>yay -S mkv2cast</code></li>
+    <li><strong>Manual:</strong> Download .deb from <a href="https://github.com/voldardard/mkv2cast/releases">GitHub Releases</a></li>
+  </ul>
+  
+  <h2>Links</h2>
+  <ul>
+    <li><a href="https://github.com/voldardard/mkv2cast">GitHub Repository</a></li>
+    <li><a href="https://voldardard.github.io/mkv2cast">Documentation</a></li>
+    <li><a href="https://pypi.org/project/mkv2cast/">PyPI Package</a></li>
+  </ul>
+</body>
+</html>
