@@ -30,7 +30,7 @@ jobs:
         run: ruff format --check src/ tests/
 
       - name: Run mypy
-        run: mypy src/mkv2cast --ignore-missing-imports
+        run: mypy src/mkv2cast --ignore-missing-imports --check-untyped-defs
 
   test:
     name: Test (Python ${{ matrix.python-version }})

@@ -230,7 +230,7 @@ class Config:
             >>> success, output, msg = convert_file(path, cfg=config)
         """
         # Set sensible defaults for library usage
-        defaults = {
+        defaults: Dict[str, Any] = {
             "progress": False,
             "notify": False,
             "pipeline": False,

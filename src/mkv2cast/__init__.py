@@ -19,7 +19,7 @@ Example usage:
     result = convert_file("movie.mkv", config)
 """
 
-__version__ = "1.2.2"
+__version__ = "1.2.3"
 __author__ = "voldardard"
 __license__ = "GPL-3.0"
 __copyright__ = "Copyright (C) 2024-2026 voldardard"
