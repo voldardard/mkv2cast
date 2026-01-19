@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.2] - 2026-01-19
+
+### Added
+- **AUR Package**: Published on Arch User Repository (`yay -S mkv2cast`)
+- **AUR Workflow**: Automated publishing to AUR on releases (`.github/workflows/aur.yml`)
+- **Debian Workflow**: Automated `.deb` package builds on releases (`.github/workflows/deb.yml`)
+- Makefile targets: `make deb` and `make aur-srcinfo` for local package building
+- CI/Docs status badges in Sphinx documentation
+
+### Changed
+- Documentation URL changed from readthedocs to GitHub Pages
+- Install script version updated to match package version
+
+### Fixed
+- Documentation badges now show real-time CI and build status
+
+---
+
 ## [1.1.1] - 2026-01-19
 
 ### Added
