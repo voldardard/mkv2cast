@@ -19,7 +19,7 @@ Example usage:
     result = convert_file("movie.mkv", config)
 """
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 __author__ = "voldardard"
 __license__ = "GPL-3.0"
 __copyright__ = "Copyright (C) 2024-2026 voldardard"
@@ -27,10 +27,12 @@ __url__ = "https://github.com/voldardard/mkv2cast"
 __description__ = "Smart MKV to Chromecast-compatible converter with hardware acceleration"
 
 # Public API exports
-from mkv2cast.config import Config, get_app_dirs, load_config_file
+from mkv2cast.config import Config, get_app_dirs, is_script_mode, load_config_file
 from mkv2cast.converter import (
     Decision,
+    ProgressCallback,
     build_transcode_cmd,
+    convert_batch,
     convert_file,
     decide_for,
     pick_backend,
@@ -51,12 +53,15 @@ __all__ = [
     "Config",
     "get_app_dirs",
     "load_config_file",
+    "is_script_mode",
     # Converter
     "Decision",
+    "ProgressCallback",
     "decide_for",
     "pick_backend",
     "build_transcode_cmd",
     "convert_file",
+    "convert_batch",
     # History
     "HistoryDB",
     # Integrity

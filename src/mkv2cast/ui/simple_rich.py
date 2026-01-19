@@ -2,8 +2,14 @@
 Simple Rich-based progress UI for mkv2cast (sequential mode).
 
 Provides a beautiful progress bar for single-file encoding.
+
+Respects:
+- NO_COLOR environment variable
+- MKV2CAST_SCRIPT_MODE environment variable
+- sys.stdout.isatty() for automatic detection
 """
 
+import os
 import re
 import subprocess
 import sys
@@ -27,12 +33,34 @@ from mkv2cast.i18n import _
 from mkv2cast.ui.legacy_ui import fmt_hms
 
 
+def _should_use_color() -> bool:
+    """Check if color output should be used."""
+    # Check NO_COLOR environment variable (https://no-color.org/)
+    if os.getenv("NO_COLOR"):
+        return False
+    # Check script mode
+    if os.getenv("MKV2CAST_SCRIPT_MODE"):
+        return False
+    # Check if stdout is a TTY
+    try:
+        if not sys.stdout.isatty():
+            return False
+    except Exception:
+        return False
+    return True
+
+
 class SimpleRichUI:
     """Simple Rich-based UI for sequential file processing."""
 
     def __init__(self, progress_enabled: bool = True):
-        self.console = Console()
-        self.enabled = progress_enabled and sys.stdout.isatty()
+        # Respect NO_COLOR and TTY detection
+        use_color = _should_use_color()
+        self.console = Console(
+            force_terminal=use_color if use_color else None,
+            no_color=not use_color,
+        )
+        self.enabled = progress_enabled and use_color
 
         # Stats
         self.ok = 0

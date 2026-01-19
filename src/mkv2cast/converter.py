@@ -6,6 +6,8 @@ Contains:
 - Backend selection (VAAPI, QSV, CPU)
 - FFmpeg command building
 - File conversion functions
+- Progress callback support for library usage
+- Batch processing with multi-threading
 """
 
 import json
@@ -14,9 +16,12 @@ import re
 import shlex
 import shutil
 import subprocess
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from mkv2cast.config import CFG, Config
 
@@ -809,6 +814,150 @@ def build_transcode_cmd(
     return args, stage
 
 
+# -------------------- PROGRESS PARSING --------------------
+
+
+def parse_ffmpeg_progress(line: str, dur_ms: int) -> Dict[str, Any]:
+    """
+    Parse FFmpeg progress line and return progress metrics.
+
+    Args:
+        line: A line from FFmpeg stderr output.
+        dur_ms: Total duration in milliseconds.
+
+    Returns:
+        Dict with progress metrics:
+        - progress_percent: float (0-100)
+        - fps: float
+        - speed: str (e.g., "2.5x")
+        - bitrate: str (e.g., "2500kbits/s")
+        - current_time_ms: int
+        - frame: int
+        - size_bytes: int
+    """
+    result: Dict[str, Any] = {
+        "progress_percent": 0.0,
+        "fps": 0.0,
+        "speed": "",
+        "bitrate": "",
+        "current_time_ms": 0,
+        "frame": 0,
+        "size_bytes": 0,
+    }
+
+    # Parse time: time=00:01:23.45
+    m = re.search(r"time=\s*(\d+):(\d+):(\d+)\.(\d+)", line)
+    if m:
+        h, mi, s, cs = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
+        current_ms = (h * 3600 + mi * 60 + s) * 1000 + cs * 10
+        result["current_time_ms"] = current_ms
+        if dur_ms > 0:
+            result["progress_percent"] = min(100.0, (current_ms / dur_ms) * 100)
+
+    # Parse fps: fps=123.45
+    m = re.search(r"fps=\s*([0-9.]+)", line)
+    if m:
+        try:
+            result["fps"] = float(m.group(1))
+        except ValueError:
+            pass
+
+    # Parse speed: speed=2.5x
+    m = re.search(r"speed=\s*([0-9.]+)x", line)
+    if m:
+        result["speed"] = f"{float(m.group(1)):.1f}x"
+
+    # Parse bitrate: bitrate=2500kbits/s
+    m = re.search(r"bitrate=\s*([^\s]+)", line)
+    if m:
+        result["bitrate"] = m.group(1)
+
+    # Parse frame: frame=12345
+    m = re.search(r"frame=\s*(\d+)", line)
+    if m:
+        result["frame"] = int(m.group(1))
+
+    # Parse size: size=12345kB
+    m = re.search(r"size=\s*(\d+)kB", line)
+    if m:
+        result["size_bytes"] = int(m.group(1)) * 1024
+
+    return result
+
+
+def calculate_eta(current_time_ms: int, dur_ms: int, speed_str: str, start_time: float) -> float:
+    """
+    Calculate ETA in seconds based on progress.
+
+    Args:
+        current_time_ms: Current position in milliseconds.
+        dur_ms: Total duration in milliseconds.
+        speed_str: Speed string like "2.5x".
+        start_time: Start time (time.time()).
+
+    Returns:
+        Estimated time remaining in seconds.
+    """
+    if current_time_ms <= 0 or dur_ms <= 0:
+        return 0.0
+
+    remaining_ms = dur_ms - current_time_ms
+    if remaining_ms <= 0:
+        return 0.0
+
+    # Try speed-based ETA first
+    if speed_str:
+        m = re.match(r"([0-9.]+)x", speed_str)
+        if m:
+            try:
+                speed_x = float(m.group(1))
+                if speed_x > 0:
+                    return (remaining_ms / 1000.0) / speed_x
+            except ValueError:
+                pass
+
+    # Fallback to elapsed-time based ETA
+    elapsed = time.time() - start_time
+    if elapsed > 0 and current_time_ms > 0:
+        rate = current_time_ms / elapsed
+        if rate > 0:
+            return remaining_ms / rate / 1000.0
+
+    return 0.0
+
+
+# -------------------- CALLBACK TYPES --------------------
+
+
+# Type alias for progress callback
+ProgressCallback = Callable[[Path, Dict[str, Any]], None]
+
+
+def _make_progress_dict(
+    stage: str,
+    progress_percent: float = 0.0,
+    fps: float = 0.0,
+    eta_seconds: float = 0.0,
+    bitrate: str = "",
+    speed: str = "",
+    current_time_ms: int = 0,
+    duration_ms: int = 0,
+    error: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Create a standardized progress dictionary for callbacks."""
+    return {
+        "stage": stage,
+        "progress_percent": progress_percent,
+        "fps": fps,
+        "eta_seconds": eta_seconds,
+        "bitrate": bitrate,
+        "speed": speed,
+        "current_time_ms": current_time_ms,
+        "duration_ms": duration_ms,
+        "error": error,
+    }
+
+
 # -------------------- HIGH-LEVEL CONVERSION --------------------
 
 
@@ -830,6 +979,7 @@ def convert_file(
     backend: Optional[str] = None,
     output_dir: Optional[Path] = None,
     log_path: Optional[Path] = None,
+    progress_callback: Optional[ProgressCallback] = None,
 ) -> Tuple[bool, Optional[Path], str]:
     """
     Convert a single MKV file.
@@ -840,9 +990,25 @@ def convert_file(
         backend: Backend to use (auto-detected if not provided).
         output_dir: Output directory (same as input if not provided).
         log_path: Path for conversion log.
+        progress_callback: Optional callback function called with progress updates.
+            The callback receives (filepath, progress_dict) where progress_dict contains:
+            - stage: "checking" | "encoding" | "done" | "skipped" | "failed"
+            - progress_percent: float (0-100)
+            - fps: float
+            - eta_seconds: float
+            - bitrate: str
+            - speed: str
+            - current_time_ms: int
+            - duration_ms: int
+            - error: Optional[str]
 
     Returns:
         Tuple of (success, output_path, message).
+
+    Example:
+        >>> def on_progress(filepath, progress):
+        ...     print(f"{filepath.name}: {progress['stage']} - {progress['progress_percent']:.1f}%")
+        >>> success, output, msg = convert_file(Path("movie.mkv"), progress_callback=on_progress)
     """
     if cfg is None:
         cfg = CFG
@@ -853,14 +1019,28 @@ def convert_file(
     if output_dir is None:
         output_dir = input_path.parent
 
+    def _call_callback(stage: str, **kwargs: Any) -> None:
+        """Helper to safely call the progress callback."""
+        if progress_callback is not None:
+            try:
+                progress_dict = _make_progress_dict(stage, **kwargs)
+                progress_callback(input_path, progress_dict)
+            except Exception:
+                pass  # Don't let callback errors affect conversion
+
+    # Signal checking stage
+    _call_callback("checking", progress_percent=0.0)
+
     # Analyze file
     try:
         decision = decide_for(input_path, cfg)
     except Exception as e:
+        _call_callback("failed", error=f"Analysis failed: {e}")
         return False, None, f"Analysis failed: {e}"
 
     # Check if already compatible
     if (not decision.need_v) and (not decision.need_a) and cfg.skip_when_ok:
+        _call_callback("skipped", progress_percent=100.0)
         return True, None, "Already compatible"
 
     # Build output path
@@ -868,6 +1048,7 @@ def convert_file(
     output_path = output_dir / f"{input_path.stem}{tag}{cfg.suffix}.{cfg.container}"
 
     if output_path.exists():
+        _call_callback("skipped", progress_percent=100.0)
         return True, output_path, "Output already exists"
 
     # Create temp path
@@ -877,28 +1058,288 @@ def convert_file(
     cmd, stage = build_transcode_cmd(input_path, decision, backend, tmp_path, log_path, cfg)
 
     if cfg.dryrun:
+        _call_callback("skipped", progress_percent=100.0)
         return True, None, f"DRYRUN: {shlex.join(cmd)}"
 
-    # Run ffmpeg
-    try:
-        result = subprocess.run(cmd, capture_output=True, timeout=86400)  # 24h timeout
+    # Get duration for progress calculation
+    dur_ms = probe_duration_ms(input_path)
 
-        if result.returncode == 0:
+    # Signal encoding start
+    _call_callback("encoding", progress_percent=0.0, duration_ms=dur_ms)
+
+    # Run ffmpeg with progress parsing if callback is provided
+    if progress_callback is not None:
+        return _run_ffmpeg_with_callback(
+            cmd, tmp_path, output_path, stage, dur_ms, input_path, progress_callback
+        )
+    else:
+        # Original behavior without callback
+        try:
+            result = subprocess.run(cmd, capture_output=True, timeout=86400)  # 24h timeout
+
+            if result.returncode == 0:
+                # Move temp to final
+                shutil.move(str(tmp_path), str(output_path))
+                return True, output_path, f"{stage} complete"
+            else:
+                # Clean up temp file
+                if tmp_path.exists():
+                    tmp_path.unlink()
+                return False, None, f"ffmpeg error (rc={result.returncode})"
+
+        except subprocess.TimeoutExpired:
+            if tmp_path.exists():
+                tmp_path.unlink()
+            return False, None, "Timeout exceeded"
+
+        except Exception as e:
+            if tmp_path.exists():
+                tmp_path.unlink()
+            return False, None, f"Error: {e}"
+
+
+def _run_ffmpeg_with_callback(
+    cmd: List[str],
+    tmp_path: Path,
+    output_path: Path,
+    stage: str,
+    dur_ms: int,
+    input_path: Path,
+    progress_callback: ProgressCallback,
+) -> Tuple[bool, Optional[Path], str]:
+    """
+    Run FFmpeg command while parsing progress and calling callback.
+
+    Args:
+        cmd: FFmpeg command to run.
+        tmp_path: Temporary output path.
+        output_path: Final output path.
+        stage: Stage name (e.g., "TRANSCODE").
+        dur_ms: Duration in milliseconds.
+        input_path: Input file path.
+        progress_callback: Callback function for progress updates.
+
+    Returns:
+        Tuple of (success, output_path, message).
+    """
+    start_time = time.time()
+
+    try:
+        # Start process with stderr pipe for progress
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=False,
+        )
+
+        # Read stderr for progress updates
+        last_progress = 0.0
+
+        while True:
+            if process.stderr is None:
+                break
+            line = process.stderr.readline()
+            if not line:
+                break
+
+            line_str = line.decode("utf-8", errors="replace")
+
+            # Parse progress from FFmpeg output
+            progress_data = parse_ffmpeg_progress(line_str, dur_ms)
+
+            # Only call callback if progress changed significantly
+            if progress_data["progress_percent"] > last_progress + 0.5 or progress_data["fps"] > 0:
+                last_progress = progress_data["progress_percent"]
+
+                # Calculate ETA
+                eta = calculate_eta(
+                    progress_data["current_time_ms"],
+                    dur_ms,
+                    progress_data["speed"],
+                    start_time
+                )
+
+                try:
+                    progress_dict = _make_progress_dict(
+                        stage="encoding",
+                        progress_percent=progress_data["progress_percent"],
+                        fps=progress_data["fps"],
+                        eta_seconds=eta,
+                        bitrate=progress_data["bitrate"],
+                        speed=progress_data["speed"],
+                        current_time_ms=progress_data["current_time_ms"],
+                        duration_ms=dur_ms,
+                    )
+                    progress_callback(input_path, progress_dict)
+                except Exception:
+                    pass
+
+        # Wait for process to complete
+        process.wait()
+
+        if process.returncode == 0:
             # Move temp to final
             shutil.move(str(tmp_path), str(output_path))
+
+            # Signal done
+            try:
+                progress_dict = _make_progress_dict(
+                    stage="done",
+                    progress_percent=100.0,
+                    duration_ms=dur_ms,
+                )
+                progress_callback(input_path, progress_dict)
+            except Exception:
+                pass
+
             return True, output_path, f"{stage} complete"
         else:
             # Clean up temp file
             if tmp_path.exists():
                 tmp_path.unlink()
-            return False, None, f"ffmpeg error (rc={result.returncode})"
+
+            error_msg = f"ffmpeg error (rc={process.returncode})"
+            try:
+                progress_dict = _make_progress_dict(
+                    stage="failed",
+                    error=error_msg,
+                )
+                progress_callback(input_path, progress_dict)
+            except Exception:
+                pass
+
+            return False, None, error_msg
 
     except subprocess.TimeoutExpired:
         if tmp_path.exists():
             tmp_path.unlink()
-        return False, None, "Timeout exceeded"
+        error_msg = "Timeout exceeded"
+        try:
+            progress_dict = _make_progress_dict(stage="failed", error=error_msg)
+            progress_callback(input_path, progress_dict)
+        except Exception:
+            pass
+        return False, None, error_msg
 
     except Exception as e:
         if tmp_path.exists():
             tmp_path.unlink()
-        return False, None, f"Error: {e}"
+        error_msg = f"Error: {e}"
+        try:
+            progress_dict = _make_progress_dict(stage="failed", error=error_msg)
+            progress_callback(input_path, progress_dict)
+        except Exception:
+            pass
+        return False, None, error_msg
+
+
+def convert_batch(
+    input_paths: List[Path],
+    cfg: Optional[Config] = None,
+    progress_callback: Optional[ProgressCallback] = None,
+    output_dir: Optional[Path] = None,
+    backend: Optional[str] = None,
+) -> Dict[Path, Tuple[bool, Optional[Path], str]]:
+    """
+    Convert multiple files in parallel using multi-threading.
+
+    This function processes multiple files concurrently, respecting the
+    configured number of workers. Each file's progress is reported via
+    the optional callback.
+
+    Args:
+        input_paths: List of input file paths to convert.
+        cfg: Config instance (uses global CFG if not provided).
+            The number of parallel workers is determined by cfg.encode_workers.
+        progress_callback: Optional callback function called with progress updates.
+            The callback receives (filepath, progress_dict) for each file.
+            The callback should be thread-safe if processing multiple files.
+        output_dir: Output directory for all files (same as input if not provided).
+        backend: Backend to use (auto-detected if not provided).
+
+    Returns:
+        Dict mapping input_path -> (success, output_path, message).
+
+    Example:
+        >>> from mkv2cast import convert_batch, Config
+        >>> from pathlib import Path
+        >>>
+        >>> config = Config.for_library(hw="vaapi", encode_workers=2)
+        >>>
+        >>> def on_progress(filepath, progress):
+        ...     print(f"{filepath.name}: {progress['progress_percent']:.1f}%")
+        >>>
+        >>> files = [Path("movie1.mkv"), Path("movie2.mkv")]
+        >>> results = convert_batch(files, cfg=config, progress_callback=on_progress)
+        >>>
+        >>> for filepath, (success, output, msg) in results.items():
+        ...     print(f"{filepath.name}: {'OK' if success else 'FAIL'} - {msg}")
+    """
+    if cfg is None:
+        cfg = CFG
+
+    if backend is None:
+        backend = pick_backend(cfg)
+
+    # Determine number of workers
+    max_workers = cfg.encode_workers if cfg.encode_workers > 0 else 1
+
+    # Thread-safe results dict
+    results: Dict[Path, Tuple[bool, Optional[Path], str]] = {}
+    results_lock = threading.Lock()
+
+    # Thread-safe callback wrapper
+    callback_lock = threading.Lock()
+
+    def thread_safe_callback(filepath: Path, progress: Dict[str, Any]) -> None:
+        """Thread-safe wrapper for the progress callback."""
+        if progress_callback is not None:
+            with callback_lock:
+                try:
+                    progress_callback(filepath, progress)
+                except Exception:
+                    pass
+
+    def process_file(input_path: Path) -> Tuple[Path, Tuple[bool, Optional[Path], str]]:
+        """Process a single file and return the result."""
+        out_dir = output_dir if output_dir is not None else input_path.parent
+
+        result = convert_file(
+            input_path,
+            cfg=cfg,
+            backend=backend,
+            output_dir=out_dir,
+            progress_callback=thread_safe_callback if progress_callback else None,
+        )
+
+        return input_path, result
+
+    # Process files in parallel
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all tasks
+        futures = {
+            executor.submit(process_file, path): path
+            for path in input_paths
+        }
+
+        # Collect results as they complete
+        for future in as_completed(futures):
+            input_path = futures[future]
+            try:
+                path, result = future.result()
+                with results_lock:
+                    results[path] = result
+            except Exception as e:
+                # Handle unexpected errors
+                with results_lock:
+                    results[input_path] = (False, None, f"Error: {e}")
+
+                # Signal failure via callback
+                if progress_callback:
+                    thread_safe_callback(
+                        input_path,
+                        _make_progress_dict(stage="failed", error=str(e))
+                    )
+
+    return results

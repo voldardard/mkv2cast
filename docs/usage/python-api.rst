@@ -3,6 +3,10 @@ Using mkv2cast as a Python Package
 
 mkv2cast can be imported and used as a Python library in your scripts, allowing you to programmatically convert video files with full control over the conversion process.
 
+.. contents:: Table of Contents
+   :local:
+   :depth: 2
+
 Installation
 ------------
 
@@ -19,11 +23,14 @@ The simplest way to use mkv2cast programmatically is with the ``convert_file`` f
 
 .. code-block:: python
 
-   from mkv2cast import convert_file
+   from mkv2cast import convert_file, Config
    from pathlib import Path
 
+   # Use Config.for_library() for optimal library usage
+   config = Config.for_library(hw="auto")
+
    # Convert a single file
-   success, output_path, message = convert_file(Path("movie.mkv"))
+   success, output_path, message = convert_file(Path("movie.mkv"), cfg=config)
 
    if success:
        if output_path:
@@ -34,9 +41,50 @@ The simplest way to use mkv2cast programmatically is with the ``convert_file`` f
        print(f"Failed: {message}")
 
 The ``convert_file`` function returns a tuple of:
+
 - ``success`` (bool): Whether the operation succeeded
 - ``output_path`` (Path | None): Path to output file if created, None if skipped
 - ``message`` (str): Status message explaining the result
+
+Script Mode and Library Usage
+-----------------------------
+
+When using mkv2cast as a library, you should disable UI features that are designed
+for interactive CLI usage. The easiest way is to use ``Config.for_library()``:
+
+.. code-block:: python
+
+   from mkv2cast import Config
+
+   # Recommended: auto-disables progress bars, notifications, and Rich UI
+   config = Config.for_library(
+       hw="vaapi",
+       crf=20,
+       # ... other options
+   )
+
+**What gets disabled:**
+
+- ``progress=False``: No progress bars
+- ``notify=False``: No desktop notifications
+- ``pipeline=False``: No Rich UI (uses simple mode)
+
+**Automatic Detection:**
+
+mkv2cast can automatically detect script mode using ``is_script_mode()``:
+
+.. code-block:: python
+
+   from mkv2cast import is_script_mode
+
+   if is_script_mode():
+       print("Running in script mode")
+
+Script mode is detected when:
+
+- ``sys.stdout`` is not a TTY (piped or redirected)
+- ``NO_COLOR`` environment variable is set
+- ``MKV2CAST_SCRIPT_MODE=1`` environment variable is set
 
 Configuration
 -------------
@@ -153,21 +201,118 @@ The ``Decision`` object contains detailed information about the file:
 - ``reason_v``: Explanation of video decision
 - And more...
 
-Batch Processing
-----------------
+Progress Callbacks
+------------------
 
-Process multiple files with custom logic:
+Instead of parsing JSON output, you can use progress callbacks directly. This is the
+recommended approach for integrating mkv2cast into larger applications.
+
+Basic Progress Callback
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   from mkv2cast import convert_file, Config
+   from pathlib import Path
+
+   def on_progress(filepath: Path, progress: dict):
+       """Called during conversion with progress updates."""
+       stage = progress.get("stage", "unknown")
+       percent = progress.get("progress_percent", 0)
+       fps = progress.get("fps", 0)
+       eta = progress.get("eta_seconds", 0)
+       
+       print(f"{filepath.name}: {stage} - {percent:.1f}% @ {fps:.1f}fps, ETA: {eta:.0f}s")
+
+   config = Config.for_library(hw="auto")
+
+   success, output, msg = convert_file(
+       Path("movie.mkv"),
+       cfg=config,
+       progress_callback=on_progress
+   )
+
+Progress Dictionary Fields
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The callback receives a dictionary with the following fields:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 15 65
+
+   * - Field
+     - Type
+     - Description
+   * - ``stage``
+     - str
+     - Current stage: "checking", "encoding", "done", "skipped", "failed"
+   * - ``progress_percent``
+     - float
+     - Progress percentage (0-100)
+   * - ``fps``
+     - float
+     - Current encoding FPS
+   * - ``eta_seconds``
+     - float
+     - Estimated time remaining in seconds
+   * - ``bitrate``
+     - str
+     - Current bitrate (e.g., "2500kbits/s")
+   * - ``speed``
+     - str
+     - Encoding speed relative to playback (e.g., "2.5x")
+   * - ``current_time_ms``
+     - int
+     - Current position in milliseconds
+   * - ``duration_ms``
+     - int
+     - Total duration in milliseconds
+   * - ``error``
+     - str or None
+     - Error message if stage is "failed"
+
+Advanced: Progress with Logging
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   import logging
+   from mkv2cast import convert_file, Config
+   from pathlib import Path
+
+   logging.basicConfig(level=logging.INFO)
+   logger = logging.getLogger(__name__)
+
+   def on_progress(filepath: Path, progress: dict):
+       stage = progress["stage"]
+       percent = progress["progress_percent"]
+       
+       if stage == "checking":
+           logger.info(f"Checking integrity: {filepath.name}")
+       elif stage == "encoding":
+           logger.info(f"Encoding {filepath.name}: {percent:.1f}%")
+       elif stage == "done":
+           logger.info(f"Complete: {filepath.name}")
+       elif stage == "failed":
+           logger.error(f"Failed {filepath.name}: {progress.get('error')}")
+       elif stage == "skipped":
+           logger.info(f"Skipped: {filepath.name}")
+
+   config = Config.for_library(hw="vaapi")
+   convert_file(Path("movie.mkv"), cfg=config, progress_callback=on_progress)
+
+Batch Processing (Sequential)
+-----------------------------
+
+Process multiple files sequentially with custom logic:
 
 .. code-block:: python
 
    from pathlib import Path
    from mkv2cast import convert_file, Config
 
-   config = Config(
-       hw="auto",
-       container="mkv",
-       notify=False
-   )
+   config = Config.for_library(hw="auto", container="mkv")
 
    input_dir = Path("/media/videos")
    output_dir = Path("/media/converted")
@@ -180,11 +325,62 @@ Process multiple files with custom logic:
        )
        
        if success and output:
-           print(f"✓ {mkv_file.name} -> {output.name}")
+           print(f"OK {mkv_file.name} -> {output.name}")
        elif not success:
-           print(f"✗ {mkv_file.name}: {msg}")
+           print(f"FAIL {mkv_file.name}: {msg}")
        else:
-           print(f"⊘ {mkv_file.name}: {msg}")
+           print(f"SKIP {mkv_file.name}: {msg}")
+
+Batch Processing with Multi-threading
+-------------------------------------
+
+For parallel processing of multiple files, use ``convert_batch()``:
+
+.. code-block:: python
+
+   from mkv2cast import convert_batch, Config
+   from pathlib import Path
+
+   config = Config.for_library(
+       hw="vaapi",
+       encode_workers=2,      # 2 parallel encoders
+   )
+
+   def on_progress(filepath: Path, progress: dict):
+       """Thread-safe callback for progress updates."""
+       percent = progress.get("progress_percent", 0)
+       stage = progress.get("stage", "")
+       print(f"{filepath.name}: {stage} {percent:.1f}%")
+
+   files = list(Path("/media/videos").glob("*.mkv"))
+
+   results = convert_batch(
+       files,
+       cfg=config,
+       progress_callback=on_progress,
+       output_dir=Path("/media/converted")
+   )
+
+   # Check results
+   success_count = sum(1 for s, _, _ in results.values() if s)
+   fail_count = len(results) - success_count
+   print(f"Done: {success_count} converted, {fail_count} failed")
+
+**Important:** The callback should be thread-safe when using ``convert_batch()``
+as it may be called from multiple threads simultaneously.
+
+Multi-threading Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The number of parallel workers is controlled by ``encode_workers``:
+
+.. code-block:: python
+
+   config = Config.for_library(
+       encode_workers=4,      # 4 parallel encoding threads
+   )
+
+Setting ``encode_workers=0`` (default) uses auto-detection based on system resources.
 
 Advanced: Building Custom Commands
 ----------------------------------
@@ -350,26 +546,46 @@ Available languages: ``en``, ``fr``, ``es``, ``it``, ``de``.
 Complete Example Script
 ------------------------
 
-Here's a complete example that processes files with error handling and logging:
+Here's a complete example that processes files with progress callbacks and parallel processing:
 
 .. code-block:: python
 
    #!/usr/bin/env python3
-   """Batch convert MKV files with custom configuration."""
+   """Batch convert MKV files with progress tracking."""
    
    import sys
+   import threading
    from pathlib import Path
-   from mkv2cast import convert_file, Config, get_app_dirs, HistoryDB
+   from mkv2cast import convert_batch, Config, get_app_dirs
+   
+   # Thread-safe progress tracking
+   progress_lock = threading.Lock()
+   file_progress = {}
+   
+   def on_progress(filepath: Path, progress: dict):
+       """Thread-safe progress callback."""
+       with progress_lock:
+           file_progress[filepath.name] = progress
+           
+           # Print current status
+           stage = progress.get("stage", "")
+           percent = progress.get("progress_percent", 0)
+           
+           if stage == "encoding":
+               fps = progress.get("fps", 0)
+               eta = progress.get("eta_seconds", 0)
+               print(f"\r{filepath.name}: {percent:.1f}% @ {fps:.1f}fps, ETA: {eta:.0f}s", end="")
+           elif stage in ("done", "skipped", "failed"):
+               print(f"\n{filepath.name}: {stage.upper()}")
    
    def main():
-       # Configuration
-       config = Config(
+       # Configuration optimized for library usage
+       config = Config.for_library(
            hw="auto",
            container="mkv",
            crf=20,
            preset="slow",
-           notify=False,
-           integrity_check=True
+           encode_workers=2,  # 2 parallel encoders
        )
        
        # Input/output directories
@@ -377,30 +593,26 @@ Here's a complete example that processes files with error handling and logging:
        output_dir = input_dir / "converted"
        output_dir.mkdir(exist_ok=True)
        
-       # Statistics
-       converted = 0
-       skipped = 0
-       failed = 0
+       # Collect files
+       files = list(input_dir.glob("**/*.mkv"))
+       if not files:
+           print("No MKV files found.")
+           return 0
        
-       # Process files
-       for mkv_file in input_dir.glob("**/*.mkv"):
-           print(f"Processing: {mkv_file.name}")
-           
-           success, output, msg = convert_file(
-               mkv_file,
-               cfg=config,
-               output_dir=output_dir
-           )
-           
-           if success and output:
-               converted += 1
-               print(f"  ✓ Converted: {output.name}")
-           elif not success:
-               failed += 1
-               print(f"  ✗ Failed: {msg}")
-           else:
-               skipped += 1
-               print(f"  ⊘ Skipped: {msg}")
+       print(f"Processing {len(files)} files...")
+       
+       # Process files in parallel
+       results = convert_batch(
+           files,
+           cfg=config,
+           progress_callback=on_progress,
+           output_dir=output_dir
+       )
+       
+       # Count results
+       converted = sum(1 for s, o, _ in results.values() if s and o)
+       skipped = sum(1 for s, o, _ in results.values() if s and not o)
+       failed = sum(1 for s, _, _ in results.values() if not s)
        
        # Print summary
        print(f"\nSummary:")
@@ -408,15 +620,72 @@ Here's a complete example that processes files with error handling and logging:
        print(f"  Skipped: {skipped}")
        print(f"  Failed: {failed}")
        
-       # Save to history
-       dirs = get_app_dirs()
-       history = HistoryDB(dirs["state"])
-       # History is automatically updated by convert_file
-       
        return 0 if failed == 0 else 1
    
    if __name__ == "__main__":
        sys.exit(main())
+
+Advanced: Async Integration
+---------------------------
+
+For asyncio-based applications, you can wrap ``convert_batch()`` in an executor:
+
+.. code-block:: python
+
+   import asyncio
+   from concurrent.futures import ThreadPoolExecutor
+   from pathlib import Path
+   from mkv2cast import convert_batch, Config
+
+   async def convert_async(files: list[Path], config: Config):
+       """Run batch conversion in a thread pool."""
+       loop = asyncio.get_event_loop()
+       
+       with ThreadPoolExecutor() as executor:
+           result = await loop.run_in_executor(
+               executor,
+               lambda: convert_batch(files, cfg=config)
+           )
+       
+       return result
+
+   # Usage
+   async def main():
+       config = Config.for_library(hw="vaapi")
+       files = [Path("movie1.mkv"), Path("movie2.mkv")]
+       
+       results = await convert_async(files, config)
+       print(f"Converted: {sum(1 for s, _, _ in results.values() if s)}")
+
+   asyncio.run(main())
+
+Advanced: Webhook Integration
+-----------------------------
+
+Send conversion events to a webhook:
+
+.. code-block:: python
+
+   import requests
+   from pathlib import Path
+   from mkv2cast import convert_file, Config
+
+   WEBHOOK_URL = "https://your-server.com/api/conversion-events"
+
+   def webhook_callback(filepath: Path, progress: dict):
+       """Send progress to webhook."""
+       try:
+           requests.post(WEBHOOK_URL, json={
+               "file": str(filepath),
+               "stage": progress.get("stage"),
+               "progress": progress.get("progress_percent"),
+               "eta": progress.get("eta_seconds"),
+           }, timeout=5)
+       except Exception:
+           pass  # Don't let webhook errors affect conversion
+
+   config = Config.for_library(hw="auto")
+   convert_file(Path("movie.mkv"), cfg=config, progress_callback=webhook_callback)
 
 JSON Progress Output
 --------------------

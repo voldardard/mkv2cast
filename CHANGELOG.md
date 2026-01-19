@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.1] - 2026-01-19
+
+### Added
+- **Python API Progress Callbacks**: New `progress_callback` parameter for `convert_file()`
+  - Real-time progress updates with FPS, ETA, bitrate, speed metrics
+  - Callback receives `(filepath, progress_dict)` with stage and progress info
+  - Stages: "checking", "encoding", "done", "skipped", "failed"
+- **Batch Processing Function**: New `convert_batch()` for parallel multi-file processing
+  - Uses `ThreadPoolExecutor` for concurrent conversions
+  - Respects `encode_workers` configuration for parallelism control
+  - Thread-safe callback support for progress tracking
+- **Script Mode Detection**: Automatic UI disabling when used as library
+  - `is_script_mode()` function to detect non-interactive usage
+  - `Config.for_library()` factory method for optimal library configuration
+  - Respects `NO_COLOR` and `MKV2CAST_SCRIPT_MODE` environment variables
+  - Auto-disables progress bars, notifications, and Rich UI
+
+### Changed
+- Rich UI respects `NO_COLOR` environment variable (https://no-color.org/)
+- Improved TTY detection for script/library usage
+
+### Fixed
+- GitHub Release workflow: AUR and Debian workflows now trigger correctly
+  - Added `create-release` job to CI workflow that creates GitHub Releases
+  - This triggers the downstream AUR publish and Debian package builds
+
+### Documentation
+- New comprehensive Library Usage Guide (`docs/usage/library-guide.rst`)
+- Updated Python API documentation with callbacks and batch processing examples
+- README updated with advanced Python API usage sections
+- Added async integration and webhook integration examples
+
+---
+
 ## [1.2.0] - 2026-01-19
 
 ### Added

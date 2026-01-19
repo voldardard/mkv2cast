@@ -6,13 +6,57 @@ Handles:
 - TOML/INI configuration file loading
 - Config dataclass with all options
 - Configuration merging (system -> user -> CLI)
+- Automatic script mode detection
 """
 
 import configparser
 import os
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+# -------------------- SCRIPT MODE DETECTION --------------------
+
+
+def is_script_mode() -> bool:
+    """
+    Detect if running as a library (not CLI).
+
+    Returns True if:
+    - stdout is not a TTY (piped or redirected)
+    - NO_COLOR environment variable is set
+    - MKV2CAST_SCRIPT_MODE environment variable is set
+    - Being imported as a library (not running as __main__)
+
+    Returns:
+        True if running in script mode, False otherwise.
+    """
+    # Check if stdout is a TTY
+    try:
+        if not sys.stdout.isatty():
+            return True
+    except Exception:
+        return True
+
+    # Check environment variables
+    if os.getenv("NO_COLOR") or os.getenv("MKV2CAST_SCRIPT_MODE"):
+        return True
+
+    # Check if being imported (not __main__)
+    try:
+        import __main__
+        # If __main__ has no __file__, we're likely in an interactive session or import
+        if not hasattr(__main__, "__file__"):
+            return True
+        # Check if the main module is mkv2cast CLI
+        main_file = getattr(__main__, "__file__", "") or ""
+        if "mkv2cast" not in main_file.lower():
+            return True
+    except Exception:
+        pass
+
+    return False
 
 # Try TOML support (Python 3.11+ or tomli package)
 try:
@@ -141,6 +185,57 @@ class Config:
 
     # JSON progress output (new)
     json_progress: bool = False
+
+    def __post_init__(self):
+        """Apply automatic script mode detection after initialization."""
+        # Don't auto-disable if explicitly running in CLI mode
+        # (CLI will set these values explicitly)
+        pass
+
+    def apply_script_mode(self) -> None:
+        """
+        Automatically disable UI features when running in script mode.
+
+        Call this method when using mkv2cast as a library to ensure
+        no unwanted output is generated.
+
+        Disables:
+        - progress: No progress bars
+        - notify: No desktop notifications
+        - pipeline: No Rich UI (use simple sequential mode)
+        """
+        if is_script_mode():
+            self.progress = False
+            self.notify = False
+            self.pipeline = False
+
+    @classmethod
+    def for_library(cls, **kwargs) -> "Config":
+        """
+        Create a Config instance optimized for library usage.
+
+        Automatically disables UI features (progress bars, notifications,
+        Rich UI) that are not suitable for programmatic use.
+
+        Args:
+            **kwargs: Configuration options to override defaults.
+
+        Returns:
+            Config instance with script mode settings applied.
+
+        Example:
+            >>> config = Config.for_library(hw="vaapi", crf=20)
+            >>> success, output, msg = convert_file(path, cfg=config)
+        """
+        # Set sensible defaults for library usage
+        defaults = {
+            "progress": False,
+            "notify": False,
+            "pipeline": False,
+        }
+        # User overrides take precedence
+        defaults.update(kwargs)
+        return cls(**defaults)
 
 
 # Global config instance (set by parse_args in cli.py)

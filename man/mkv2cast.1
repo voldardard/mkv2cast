@@ -4,7 +4,7 @@
 .\" Copyright (C) 2024-2026 voldardard
 .\" License: GPL-3.0
 .\"
-.TH MKV2CAST 1 "January 2026" "mkv2cast 1.1.0" "User Commands"
+.TH MKV2CAST 1 "January 2026" "mkv2cast 1.2.1" "User Commands"
 .\"
 .\" ==================== NAME ====================
 .SH NAME
@@ -419,6 +419,14 @@ Command-line arguments override configuration file values.
 Override interface language. Takes precedence over system locale.
 .br
 Example: \fBMKV2CAST_LANG=fr mkv2cast\fR
+.TP
+.B MKV2CAST_SCRIPT_MODE
+When set to any value, forces script mode (disables UI features).
+Useful when embedding mkv2cast in scripts.
+.TP
+.B NO_COLOR
+When set, disables all colored output (https://no-color.org/).
+Also triggers script mode detection.
 .TP
 .B XDG_CONFIG_HOME
 Configuration directory. Default: \fI~/.config\fR

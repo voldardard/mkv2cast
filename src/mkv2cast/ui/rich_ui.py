@@ -3,9 +3,16 @@ Rich-based progress UI for mkv2cast.
 
 Provides beautiful multi-worker progress display with colors and animations.
 Requires the 'rich' package to be installed.
+
+Respects:
+- NO_COLOR environment variable
+- MKV2CAST_SCRIPT_MODE environment variable
+- sys.stdout.isatty() for automatic detection
 """
 
+import os
 import re
+import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -18,6 +25,23 @@ from rich.text import Text
 
 from mkv2cast.i18n import _
 from mkv2cast.ui.legacy_ui import fmt_hms, shorten
+
+
+def _should_use_color() -> bool:
+    """Check if color output should be used."""
+    # Check NO_COLOR environment variable (https://no-color.org/)
+    if os.getenv("NO_COLOR"):
+        return False
+    # Check script mode
+    if os.getenv("MKV2CAST_SCRIPT_MODE"):
+        return False
+    # Check if stdout is a TTY
+    try:
+        if not sys.stdout.isatty():
+            return False
+    except Exception:
+        return False
+    return True
 
 
 @dataclass
@@ -52,7 +76,12 @@ class RichProgressUI:
     """Rich-based progress UI showing all files with their status."""
 
     def __init__(self, total_files: int, encode_workers: int, integrity_workers: int):
-        self.console = Console()
+        # Respect NO_COLOR and TTY detection
+        use_color = _should_use_color()
+        self.console = Console(
+            force_terminal=use_color if use_color else None,
+            no_color=not use_color,
+        )
         self.total_files = total_files
         self.encode_workers = encode_workers
         self.integrity_workers = integrity_workers

@@ -71,7 +71,7 @@ Convert your MKV video files to formats compatible with Chromecast devices and S
 
 | | |
 |---|---|
-| **Version** | 1.1.0 |
+| **Version** | 1.2.1 |
 | **Author** | voldardard |
 | **Date** | January 2026 |
 | **License** | GPL-3.0 |
@@ -549,6 +549,110 @@ for event in stream_progress("movie.mkv"):
             print(f"{filename}: {data['progress_percent']:.1f}%")
 ```
 
+### Advanced: Progress Callbacks
+
+Instead of parsing JSON output, use progress callbacks directly in your Python code:
+
+```python
+from mkv2cast import convert_file, Config
+from pathlib import Path
+
+def on_progress(filepath: Path, progress: dict):
+    """Called during conversion with progress updates."""
+    stage = progress.get("stage", "unknown")
+    percent = progress.get("progress_percent", 0)
+    fps = progress.get("fps", 0)
+    eta = progress.get("eta_seconds", 0)
+    
+    print(f"{filepath.name}: {stage} - {percent:.1f}% @ {fps:.1f}fps, ETA: {eta:.0f}s")
+
+config = Config.for_library(hw="auto")  # Auto-disables UI for library usage
+
+success, output, msg = convert_file(
+    Path("movie.mkv"),
+    cfg=config,
+    progress_callback=on_progress
+)
+```
+
+**Progress callback receives:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `stage` | str | "checking", "encoding", "done", "skipped", "failed" |
+| `progress_percent` | float | Progress percentage (0-100) |
+| `fps` | float | Current encoding FPS |
+| `eta_seconds` | float | Estimated time remaining |
+| `bitrate` | str | Current bitrate (e.g., "2500kbits/s") |
+| `speed` | str | Encoding speed (e.g., "2.5x") |
+| `current_time_ms` | int | Current position in milliseconds |
+| `duration_ms` | int | Total duration in milliseconds |
+| `error` | str/None | Error message if stage is "failed" |
+
+### Batch Processing with Multi-threading
+
+Process multiple files in parallel using `convert_batch()`:
+
+```python
+from mkv2cast import convert_batch, Config
+from pathlib import Path
+
+config = Config.for_library(
+    hw="vaapi",
+    encode_workers=2,      # 2 parallel encoders
+)
+
+def on_progress(filepath: Path, progress: dict):
+    """Thread-safe callback for progress updates."""
+    percent = progress.get("progress_percent", 0)
+    stage = progress.get("stage", "")
+    print(f"{filepath.name}: {stage} {percent:.1f}%")
+
+files = [Path("movie1.mkv"), Path("movie2.mkv"), Path("movie3.mkv")]
+
+results = convert_batch(
+    files,
+    cfg=config,
+    progress_callback=on_progress
+)
+
+# Check results
+for filepath, (success, output, msg) in results.items():
+    if success:
+        print(f"OK {filepath.name}: {msg}")
+    else:
+        print(f"FAIL {filepath.name}: {msg}")
+```
+
+### Script Mode (No Colors/Output)
+
+When used as a library, mkv2cast can automatically disable:
+
+- Progress bars
+- Colored output
+- Desktop notifications
+- Rich UI
+
+**Automatic detection** happens when:
+
+- `sys.stdout` is not a TTY (piped or redirected)
+- `NO_COLOR` environment variable is set
+- `MKV2CAST_SCRIPT_MODE=1` is set
+
+**Recommended for library usage:**
+
+```python
+# Use Config.for_library() which auto-disables UI features
+config = Config.for_library(hw="vaapi", crf=20)
+
+# Or manually disable
+config = Config(
+    progress=False,    # No progress bars
+    notify=False,      # No notifications
+    pipeline=False,    # No Rich UI
+)
+```
+
 ### Analyzing Files
 
 Before converting, you can analyze a file to see what transcoding is needed:
@@ -571,19 +675,15 @@ backend = pick_backend()
 print(f"Best backend: {backend}")
 ```
 
-### Batch Processing
+### Batch Processing (Sequential)
 
-Process multiple files with custom logic:
+Process multiple files sequentially with custom logic:
 
 ```python
 from pathlib import Path
 from mkv2cast import convert_file, Config
 
-config = Config(
-    hw="auto",
-    container="mkv",
-    notify=False
-)
+config = Config.for_library(hw="auto", container="mkv")
 
 input_dir = Path("/media/videos")
 output_dir = Path("/media/converted")
@@ -596,12 +696,14 @@ for mkv_file in input_dir.glob("**/*.mkv"):
     )
     
     if success and output:
-        print(f"✓ {mkv_file.name} -> {output.name}")
+        print(f"OK {mkv_file.name} -> {output.name}")
     elif not success:
-        print(f"✗ {mkv_file.name}: {msg}")
+        print(f"FAIL {mkv_file.name}: {msg}")
     else:
-        print(f"⊘ {mkv_file.name}: {msg}")
+        print(f"SKIP {mkv_file.name}: {msg}")
 ```
+
+For parallel batch processing, see [Batch Processing with Multi-threading](#batch-processing-with-multi-threading) above.
 
 ### Advanced: Building Custom Commands
 
@@ -684,17 +786,22 @@ if "encoding" in file_config:
 
 Main exports from `mkv2cast`:
 
-- **`convert_file()`** - Convert a single file
-- **`decide_for()`** - Analyze what transcoding is needed
-- **`pick_backend()`** - Auto-detect best encoding backend
-- **`build_transcode_cmd()`** - Build FFmpeg command
-- **`Config`** - Configuration dataclass
-- **`Decision`** - Analysis result dataclass
-- **`HistoryDB`** - Conversion history database
-- **`get_app_dirs()`** - Get XDG directories
-- **`load_config_file()`** - Load config from file
-- **`send_notification()`** - Send desktop notification
-- **`setup_i18n()`** - Setup internationalization
+| Function/Class | Description |
+|----------------|-------------|
+| **`convert_file()`** | Convert a single file with optional progress callback |
+| **`convert_batch()`** | Convert multiple files in parallel with multi-threading |
+| **`decide_for()`** | Analyze what transcoding is needed for a file |
+| **`pick_backend()`** | Auto-detect best encoding backend |
+| **`build_transcode_cmd()`** | Build FFmpeg command manually |
+| **`Config`** | Configuration dataclass with `for_library()` factory |
+| **`Config.for_library()`** | Create config optimized for library usage |
+| **`Decision`** | Analysis result dataclass |
+| **`HistoryDB`** | Conversion history database |
+| **`get_app_dirs()`** | Get XDG directories |
+| **`load_config_file()`** | Load config from file |
+| **`is_script_mode()`** | Check if running in script/library mode |
+| **`send_notification()`** | Send desktop notification |
+| **`setup_i18n()`** | Setup internationalization |
 
 For detailed API documentation, see the [API Reference](https://voldardard.github.io/mkv2cast/api/index.html).
 
