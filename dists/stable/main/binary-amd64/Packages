@@ -1,18 +1,18 @@
 Package: mkv2cast
-Version: 1.2.7-2-1
+Version: 1.2.7-3-1
 Architecture: all
 Maintainer: voldardard <voldardard@example.com>
-Installed-Size: 421
+Installed-Size: 422
 Depends: python3:any, init-system-helpers (>= 1.52), python3, ffmpeg
 Recommends: python3-rich, libnotify-bin
 Suggests: python3-tomli, python3-plyer
 Conflicts: python3-mkv2cast
 Provides: python3-mkv2cast
-Filename: ./mkv2cast_1.2.7-2-1_all.deb
-Size: 80638
-MD5sum: 0cd474aa5a899ad0b6a425b670081fc1
-SHA1: b366a0a9794e6ad6e5027d2053719ed659d0eb6b
-SHA256: e86206e03cc37e490c1672e048d4aa588b74c2064d8a08c2d9c86a06ef41787f
+Filename: ./mkv2cast_1.2.7-3-1_all.deb
+Size: 80868
+MD5sum: 50cb3b5833b4f63f81d4f2080539e3cb
+SHA1: 45275ffc67e9e5519faf23a18e5564c3f5d966cc
+SHA256: b0a0c4a829a2ef14ea64a56c1e2623a82cf47d2e2a721d320fcc2815513a37b0
 Section: video
 Priority: optional
 Homepage: https://github.com/voldardard/mkv2cast
