@@ -1,0 +1,374 @@
+# Italian translations for mkv2cast
+# Copyright (C) 2024-2026 voldardard
+# This file is distributed under the GPL-3.0 license.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: mkv2cast 1.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/voldardard/mkv2cast/issues\n"
+"POT-Creation-Date: 2026-01-18 00:00+0000\n"
+"PO-Revision-Date: 2026-01-18 00:00+0000\n"
+"Last-Translator: voldardard\n"
+"Language-Team: Italian\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# General
+msgid "Processing file: {filename}"
+msgstr "Elaborazione file: {filename}"
+
+msgid "Conversion complete"
+msgstr "Conversione completata"
+
+msgid "Conversion failed"
+msgstr "Conversione fallita"
+
+msgid "Skipped: {reason}"
+msgstr "Saltato: {reason}"
+
+msgid "No MKV files to process."
+msgstr "Nessun file MKV da elaborare."
+
+msgid "Backend selected"
+msgstr "Backend selezionato"
+
+# Progress
+msgid "Checking integrity..."
+msgstr "Verifica integrità..."
+
+msgid "Encoding..."
+msgstr "Codifica..."
+
+msgid "Waiting for file stability..."
+msgstr "Attesa stabilità del file..."
+
+msgid "Done"
+msgstr "Fatto"
+
+msgid "Failed"
+msgstr "Fallito"
+
+msgid "Skipped"
+msgstr "Saltato"
+
+# Summary
+msgid "Summary"
+msgstr "Riepilogo"
+
+msgid "Total files seen"
+msgstr "File totali visti"
+
+msgid "Transcoded OK"
+msgstr "Transcodificati OK"
+
+msgid "Total time"
+msgstr "Tempo totale"
+
+# Notifications
+msgid "mkv2cast - Conversion Complete"
+msgstr "mkv2cast - Conversione completata"
+
+msgid "Successfully converted 1 file in {time}"
+msgstr "1 file convertito con successo in {time}"
+
+msgid "Successfully converted {count} files in {time}"
+msgstr "{count} file convertiti con successo in {time}"
+
+msgid "mkv2cast - Conversion Failed"
+msgstr "mkv2cast - Conversione fallita"
+
+msgid "Failed to convert 1 file"
+msgstr "Impossibile convertire 1 file"
+
+msgid "Failed to convert {count} files"
+msgstr "Impossibile convertire {count} file"
+
+msgid "mkv2cast - Processing Complete"
+msgstr "mkv2cast - Elaborazione completata"
+
+msgid "{count} converted"
+msgstr "{count} convertito/i"
+
+msgid "{count} failed"
+msgstr "{count} fallito/i"
+
+msgid "{count} skipped"
+msgstr "{count} saltato/i"
+
+msgid "mkv2cast - Interrupted"
+msgstr "mkv2cast - Interrotto"
+
+msgid "Processing was interrupted by user"
+msgstr "L'elaborazione è stata interrotta dall'utente"
+
+# Errors
+msgid "File not found"
+msgstr "File non trovato"
+
+msgid "Only .mkv files supported"
+msgstr "Solo file .mkv supportati"
+
+msgid "integrity check failed"
+msgstr "verifica integrità fallita"
+
+msgid "compatible"
+msgstr "compatibile"
+
+# CLI
+msgid "Smart MKV -> Cast compatible converter with VAAPI/QSV hardware acceleration."
+msgstr "Convertitore intelligente MKV -> Cast con accelerazione hardware VAAPI/QSV."
+
+msgid "Optional .mkv file to process"
+msgstr "File .mkv opzionale da elaborare"
+
+msgid "Output settings"
+msgstr "Impostazioni output"
+
+msgid "Scan settings"
+msgstr "Impostazioni scansione"
+
+msgid "Debug/test"
+msgstr "Debug/test"
+
+msgid "Enable debug output"
+msgstr "Abilita output di debug"
+
+msgid "Dry run"
+msgstr "Modalità simulazione"
+
+msgid "Codec decisions"
+msgstr "Decisioni codec"
+
+msgid "Encoding quality"
+msgstr "Qualità codifica"
+
+msgid "Hardware acceleration"
+msgstr "Accelerazione hardware"
+
+msgid "Integrity checks"
+msgstr "Verifiche integrità"
+
+msgid "UI settings"
+msgstr "Impostazioni interfaccia"
+
+msgid "Pipeline mode"
+msgstr "Modalità pipeline"
+
+msgid "Parallelism"
+msgstr "Parallelismo"
+
+msgid "Notifications"
+msgstr "Notifiche"
+
+msgid "Send desktop notification when done (default: enabled)"
+msgstr "Invia notifica desktop al termine (default: abilitato)"
+
+msgid "Disable desktop notifications"
+msgstr "Disabilita notifiche desktop"
+
+msgid "Internationalization"
+msgstr "Internazionalizzazione"
+
+msgid "Force language (default: auto-detect)"
+msgstr "Forza lingua (default: auto-rilevamento)"
+
+msgid "Utility commands"
+msgstr "Comandi utilità"
+
+# Utility
+msgid "Requirements Check"
+msgstr "Verifica requisiti"
+
+msgid "System requirements"
+msgstr "Requisiti di sistema"
+
+msgid "mandatory"
+msgstr "obbligatorio"
+
+msgid "Optional dependencies"
+msgstr "Dipendenze opzionali"
+
+msgid "All requirements satisfied"
+msgstr "Tutti i requisiti soddisfatti"
+
+msgid "Some requirements missing"
+msgstr "Alcuni requisiti mancanti"
+
+msgid "directories"
+msgstr "directory"
+
+msgid "User directories"
+msgstr "Directory utente"
+
+msgid "Removed"
+msgstr "Rimosso"
+
+msgid "temp files"
+msgstr "file temporanei"
+
+msgid "log files older than"
+msgstr "file log più vecchi di"
+
+msgid "days"
+msgstr "giorni"
+
+msgid "history entries"
+msgstr "voci cronologia"
+
+msgid "No conversion history found."
+msgstr "Nessuna cronologia conversioni trovata."
+
+msgid "Recent conversions"
+msgstr "Conversioni recenti"
+
+msgid "last"
+msgstr "ultime"
+
+msgid "Conversion statistics"
+msgstr "Statistiche conversione"
+
+msgid "Total conversions"
+msgstr "Conversioni totali"
+
+msgid "Average encode time"
+msgstr "Tempo medio codifica"
+
+msgid "Total encode time"
+msgstr "Tempo totale codifica"
+
+msgid "Stopping"
+msgstr "Arresto"
+
+msgid "processes"
+msgstr "processi"
+
+msgid "All processes stopped"
+msgstr "Tutti i processi arrestati"
+
+# Pipeline mode strings
+msgid "Backend"
+msgstr "Backend"
+
+msgid "Workers"
+msgstr "Worker"
+
+msgid "encode"
+msgstr "codifica"
+
+msgid "integrity"
+msgstr "integrità"
+
+msgid "Files"
+msgstr "File"
+
+msgid "to process"
+msgstr "da elaborare"
+
+msgid "Found"
+msgstr "Trovati"
+
+msgid "file(s) to process"
+msgstr "file da elaborare"
+
+msgid "Converted"
+msgstr "Convertiti"
+
+# Rich UI strings
+msgid "SKIP"
+msgstr "SALTATO"
+
+msgid "DONE"
+msgstr "FATTO"
+
+msgid "FAIL"
+msgstr "FALLITO"
+
+msgid "QUEUE"
+msgstr "CODA"
+
+msgid "CHECK"
+msgstr "VERIF"
+
+msgid "ENCODE"
+msgstr "CODIF"
+
+msgid "int"
+msgstr "ver"
+
+msgid "enc"
+msgstr "cod"
+
+msgid "tot"
+msgstr "tot"
+
+msgid "error"
+msgstr "errore"
+
+msgid "check"
+msgstr "verif"
+
+msgid "in queue"
+msgstr "in coda"
+
+msgid "Waiting for check"
+msgstr "In attesa di verifica"
+
+msgid "file(s)"
+msgstr "file"
+
+msgid "Initializing..."
+msgstr "Inizializzazione..."
+
+msgid "output exists"
+msgstr "output esistente"
+
+msgid "tmp exists"
+msgstr "file temp esistente"
+
+msgid "dryrun"
+msgstr "simulazione"
+
+msgid "integrity failed"
+msgstr "integrità fallita"
+
+msgid "integrity error"
+msgstr "errore integrità"
+
+msgid "analysis error"
+msgstr "errore analisi"
+
+msgid "encode error"
+msgstr "errore codifica"
+
+msgid "move error"
+msgstr "errore spostamento"
+
+msgid "interrupted"
+msgstr "interrotto"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "in"
+msgstr "in"
+
+msgid "FAILED"
+msgstr "FALLITO"
+
+msgid "Already compatible"
+msgstr "Già compatibile"
+
+# Multi-user cleanup
+msgid "Running as root - cleaning tmp for all users..."
+msgstr "Esecuzione come root - pulizia tmp per tutti gli utenti..."
+
+msgid "Running as root - cleaning logs for all users..."
+msgstr "Esecuzione come root - pulizia log per tutti gli utenti..."
+
+msgid "files removed"
+msgstr "file rimossi"
+
+msgid "Total removed"
+msgstr "Totale rimossi"

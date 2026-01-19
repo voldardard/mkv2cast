@@ -1,0 +1,374 @@
+# English translations for mkv2cast
+# Copyright (C) 2024-2026 voldardard
+# This file is distributed under the GPL-3.0 license.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: mkv2cast 1.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/voldardard/mkv2cast/issues\n"
+"POT-Creation-Date: 2026-01-18 00:00+0000\n"
+"PO-Revision-Date: 2026-01-18 00:00+0000\n"
+"Last-Translator: voldardard\n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# General
+msgid "Processing file: {filename}"
+msgstr "Processing file: {filename}"
+
+msgid "Conversion complete"
+msgstr "Conversion complete"
+
+msgid "Conversion failed"
+msgstr "Conversion failed"
+
+msgid "Skipped: {reason}"
+msgstr "Skipped: {reason}"
+
+msgid "No MKV files to process."
+msgstr "No MKV files to process."
+
+msgid "Backend selected"
+msgstr "Backend selected"
+
+# Progress
+msgid "Checking integrity..."
+msgstr "Checking integrity..."
+
+msgid "Encoding..."
+msgstr "Encoding..."
+
+msgid "Waiting for file stability..."
+msgstr "Waiting for file stability..."
+
+msgid "Done"
+msgstr "Done"
+
+msgid "Failed"
+msgstr "Failed"
+
+msgid "Skipped"
+msgstr "Skipped"
+
+# Summary
+msgid "Summary"
+msgstr "Summary"
+
+msgid "Total files seen"
+msgstr "Total files seen"
+
+msgid "Transcoded OK"
+msgstr "Transcoded OK"
+
+msgid "Total time"
+msgstr "Total time"
+
+# Notifications
+msgid "mkv2cast - Conversion Complete"
+msgstr "mkv2cast - Conversion Complete"
+
+msgid "Successfully converted 1 file in {time}"
+msgstr "Successfully converted 1 file in {time}"
+
+msgid "Successfully converted {count} files in {time}"
+msgstr "Successfully converted {count} files in {time}"
+
+msgid "mkv2cast - Conversion Failed"
+msgstr "mkv2cast - Conversion Failed"
+
+msgid "Failed to convert 1 file"
+msgstr "Failed to convert 1 file"
+
+msgid "Failed to convert {count} files"
+msgstr "Failed to convert {count} files"
+
+msgid "mkv2cast - Processing Complete"
+msgstr "mkv2cast - Processing Complete"
+
+msgid "{count} converted"
+msgstr "{count} converted"
+
+msgid "{count} failed"
+msgstr "{count} failed"
+
+msgid "{count} skipped"
+msgstr "{count} skipped"
+
+msgid "mkv2cast - Interrupted"
+msgstr "mkv2cast - Interrupted"
+
+msgid "Processing was interrupted by user"
+msgstr "Processing was interrupted by user"
+
+# Errors
+msgid "File not found"
+msgstr "File not found"
+
+msgid "Only .mkv files supported"
+msgstr "Only .mkv files supported"
+
+msgid "integrity check failed"
+msgstr "integrity check failed"
+
+msgid "compatible"
+msgstr "compatible"
+
+# CLI
+msgid "Smart MKV -> Cast compatible converter with VAAPI/QSV hardware acceleration."
+msgstr "Smart MKV -> Cast compatible converter with VAAPI/QSV hardware acceleration."
+
+msgid "Optional .mkv file to process"
+msgstr "Optional .mkv file to process"
+
+msgid "Output settings"
+msgstr "Output settings"
+
+msgid "Scan settings"
+msgstr "Scan settings"
+
+msgid "Debug/test"
+msgstr "Debug/test"
+
+msgid "Enable debug output"
+msgstr "Enable debug output"
+
+msgid "Dry run"
+msgstr "Dry run"
+
+msgid "Codec decisions"
+msgstr "Codec decisions"
+
+msgid "Encoding quality"
+msgstr "Encoding quality"
+
+msgid "Hardware acceleration"
+msgstr "Hardware acceleration"
+
+msgid "Integrity checks"
+msgstr "Integrity checks"
+
+msgid "UI settings"
+msgstr "UI settings"
+
+msgid "Pipeline mode"
+msgstr "Pipeline mode"
+
+msgid "Parallelism"
+msgstr "Parallelism"
+
+msgid "Notifications"
+msgstr "Notifications"
+
+msgid "Send desktop notification when done (default: enabled)"
+msgstr "Send desktop notification when done (default: enabled)"
+
+msgid "Disable desktop notifications"
+msgstr "Disable desktop notifications"
+
+msgid "Internationalization"
+msgstr "Internationalization"
+
+msgid "Force language (default: auto-detect)"
+msgstr "Force language (default: auto-detect)"
+
+msgid "Utility commands"
+msgstr "Utility commands"
+
+# Utility
+msgid "Requirements Check"
+msgstr "Requirements Check"
+
+msgid "System requirements"
+msgstr "System requirements"
+
+msgid "mandatory"
+msgstr "mandatory"
+
+msgid "Optional dependencies"
+msgstr "Optional dependencies"
+
+msgid "All requirements satisfied"
+msgstr "All requirements satisfied"
+
+msgid "Some requirements missing"
+msgstr "Some requirements missing"
+
+msgid "directories"
+msgstr "directories"
+
+msgid "User directories"
+msgstr "User directories"
+
+msgid "Removed"
+msgstr "Removed"
+
+msgid "temp files"
+msgstr "temp files"
+
+msgid "log files older than"
+msgstr "log files older than"
+
+msgid "days"
+msgstr "days"
+
+msgid "history entries"
+msgstr "history entries"
+
+msgid "No conversion history found."
+msgstr "No conversion history found."
+
+msgid "Recent conversions"
+msgstr "Recent conversions"
+
+msgid "last"
+msgstr "last"
+
+msgid "Conversion statistics"
+msgstr "Conversion statistics"
+
+msgid "Total conversions"
+msgstr "Total conversions"
+
+msgid "Average encode time"
+msgstr "Average encode time"
+
+msgid "Total encode time"
+msgstr "Total encode time"
+
+msgid "Stopping"
+msgstr "Stopping"
+
+msgid "processes"
+msgstr "processes"
+
+msgid "All processes stopped"
+msgstr "All processes stopped"
+
+# Pipeline mode strings
+msgid "Backend"
+msgstr "Backend"
+
+msgid "Workers"
+msgstr "Workers"
+
+msgid "encode"
+msgstr "encode"
+
+msgid "integrity"
+msgstr "integrity"
+
+msgid "Files"
+msgstr "Files"
+
+msgid "to process"
+msgstr "to process"
+
+msgid "Found"
+msgstr "Found"
+
+msgid "file(s) to process"
+msgstr "file(s) to process"
+
+msgid "Converted"
+msgstr "Converted"
+
+# Rich UI strings
+msgid "SKIP"
+msgstr "SKIP"
+
+msgid "DONE"
+msgstr "DONE"
+
+msgid "FAIL"
+msgstr "FAIL"
+
+msgid "QUEUE"
+msgstr "QUEUE"
+
+msgid "CHECK"
+msgstr "CHECK"
+
+msgid "ENCODE"
+msgstr "ENCODE"
+
+msgid "int"
+msgstr "int"
+
+msgid "enc"
+msgstr "enc"
+
+msgid "tot"
+msgstr "tot"
+
+msgid "error"
+msgstr "error"
+
+msgid "check"
+msgstr "check"
+
+msgid "in queue"
+msgstr "in queue"
+
+msgid "Waiting for check"
+msgstr "Waiting for check"
+
+msgid "file(s)"
+msgstr "file(s)"
+
+msgid "Initializing..."
+msgstr "Initializing..."
+
+msgid "output exists"
+msgstr "output exists"
+
+msgid "tmp exists"
+msgstr "tmp exists"
+
+msgid "dryrun"
+msgstr "dryrun"
+
+msgid "integrity failed"
+msgstr "integrity failed"
+
+msgid "integrity error"
+msgstr "integrity error"
+
+msgid "analysis error"
+msgstr "analysis error"
+
+msgid "encode error"
+msgstr "encode error"
+
+msgid "move error"
+msgstr "move error"
+
+msgid "interrupted"
+msgstr "interrupted"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "in"
+msgstr "in"
+
+msgid "FAILED"
+msgstr "FAILED"
+
+msgid "Already compatible"
+msgstr "Already compatible"
+
+# Multi-user cleanup
+msgid "Running as root - cleaning tmp for all users..."
+msgstr "Running as root - cleaning tmp for all users..."
+
+msgid "Running as root - cleaning logs for all users..."
+msgstr "Running as root - cleaning logs for all users..."
+
+msgid "files removed"
+msgstr "files removed"
+
+msgid "Total removed"
+msgstr "Total removed"

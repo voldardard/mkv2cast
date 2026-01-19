@@ -4,7 +4,7 @@
 .\" Copyright (C) 2024-2026 voldardard
 .\" License: GPL-3.0
 .\"
-.TH MKV2CAST 1 "January 2026" "mkv2cast 1.0.0" "User Commands"
+.TH MKV2CAST 1 "January 2026" "mkv2cast 1.1.0" "User Commands"
 .\"
 .\" ==================== NAME ====================
 .SH NAME
@@ -218,6 +218,24 @@ on system resources).
 .BI \-\-integrity\-workers " N"
 Number of parallel integrity check workers. Default: \fB0\fR (auto-detect).
 .\"
+.SS "Notifications"
+.TP
+.B \-\-notify
+Send desktop notification when processing completes. This is the default.
+Uses notify-send (libnotify) or plyer as fallback.
+.TP
+.B \-\-no\-notify
+Disable desktop notifications.
+.\"
+.SS "Internationalization"
+.TP
+.BI \-\-lang " LANG"
+Force user interface language. Supported languages: \fBen\fR (English),
+\fBfr\fR (French), \fBes\fR (Spanish), \fBit\fR (Italian), \fBde\fR (German).
+.br
+If not specified, the language is auto-detected from the system locale.
+Can also be set via the \fBMKV2CAST_LANG\fR environment variable.
+.\"
 .SS "Utility Commands"
 These commands perform a specific action and exit immediately.
 .TP
@@ -379,6 +397,11 @@ Command-line arguments override configuration file values.
 .\"
 .\" ==================== ENVIRONMENT ====================
 .SH ENVIRONMENT
+.TP
+.B MKV2CAST_LANG
+Override interface language. Takes precedence over system locale.
+.br
+Example: \fBMKV2CAST_LANG=fr mkv2cast\fR
 .TP
 .B XDG_CONFIG_HOME
 Configuration directory. Default: \fI~/.config\fR

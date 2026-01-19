@@ -1,0 +1,17 @@
+#!/usr/bin/make -f
+
+export PYBUILD_NAME=mkv2cast
+
+%:
+	dh $@ --with python3 --buildsystem=pybuild
+
+override_dh_auto_install:
+	dh_auto_install
+	# Install man page
+	install -Dm644 man/mkv2cast.1 debian/mkv2cast/usr/share/man/man1/mkv2cast.1
+	# Install completions
+	install -Dm644 completions/mkv2cast.bash debian/mkv2cast/usr/share/bash-completion/completions/mkv2cast
+	install -Dm644 completions/_mkv2cast debian/mkv2cast/usr/share/zsh/vendor-completions/_mkv2cast
+	# Install systemd user units
+	install -Dm644 systemd/mkv2cast-cleanup.service debian/mkv2cast/usr/lib/systemd/user/mkv2cast-cleanup.service
+	install -Dm644 systemd/mkv2cast-cleanup.timer debian/mkv2cast/usr/lib/systemd/user/mkv2cast-cleanup.timer

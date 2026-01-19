@@ -98,6 +98,19 @@ _mkv2cast() {
         '--integrity-workers=[Number of parallel integrity checks]:workers:(0 1 2 3 4 5 6)'
     )
     
+    # Notifications
+    local -a notify_options
+    notify_options=(
+        '--notify[Send desktop notification when done (default)]'
+        '--no-notify[Disable desktop notifications]'
+    )
+    
+    # Internationalization
+    local -a i18n_options
+    i18n_options=(
+        '--lang=[Force language]:language:(en fr es it de)'
+    )
+    
     # Utility commands
     utility_options=(
         '--show-dirs[Show XDG directory paths and exit]'
@@ -121,6 +134,8 @@ _mkv2cast() {
         $ui_options \
         $pipeline_options \
         $parallel_options \
+        $notify_options \
+        $i18n_options \
         $utility_options \
         '*:MKV file:_files -g "*.mkv(-.)"' \
         && return 0

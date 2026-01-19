@@ -1,9 +1,12 @@
 # mkv2cast
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/voldardard/mkv2cast)
+[![PyPI](https://img.shields.io/pypi/v/mkv2cast.svg)](https://pypi.org/project/mkv2cast/)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/voldardard/mkv2cast)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-green.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python](https://img.shields.io/badge/python-3.8+-yellow.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Linux-lightgrey.svg)](https://www.linux.org/)
+[![CI](https://github.com/voldardard/mkv2cast/actions/workflows/ci.yml/badge.svg)](https://github.com/voldardard/mkv2cast/actions/workflows/ci.yml)
+[![Documentation](https://img.shields.io/badge/docs-online-blue.svg)](https://mkv2cast.readthedocs.io)
 
 **Smart MKV to Chromecast-compatible converter with hardware acceleration**
 
@@ -50,6 +53,9 @@ Convert your MKV video files to formats compatible with Chromecast devices and S
 - **XDG Compliant**: Follows Linux standards for configuration, cache, and state directories
 - **Automatic Audio Selection**: Prefers French audio tracks, falls back to first available
 - **Configurable**: TOML/INI configuration file with sensible defaults
+- **Desktop Notifications**: Get notified when conversions complete (via notify-send or plyer)
+- **Multi-Language Support**: Available in English, French, Spanish, Italian, and German
+- **PyPI Distribution**: Easy installation via `pip install mkv2cast`
 
 ---
 
@@ -57,11 +63,13 @@ Convert your MKV video files to formats compatible with Chromecast devices and S
 
 | | |
 |---|---|
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 |
 | **Author** | voldardard |
 | **Date** | January 2026 |
 | **License** | GPL-3.0 |
 | **Repository** | https://github.com/voldardard/mkv2cast |
+| **PyPI** | https://pypi.org/project/mkv2cast/ |
+| **Documentation** | https://mkv2cast.readthedocs.io |
 
 ---
 
@@ -161,13 +169,29 @@ mkv2cast --check-requirements
 
 ## Installation
 
-### Quick Install (One-Liner) 🚀
+### PyPI (Recommended) 🚀
+
+```bash
+# Basic installation
+pip install mkv2cast
+
+# With all optional features (rich UI, notifications)
+pip install "mkv2cast[full]"
+```
+
+### Arch Linux (AUR)
+
+```bash
+yay -S mkv2cast
+```
+
+### Script Install (One-Liner)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/voldardard/mkv2cast/main/install.sh | bash
 ```
 
-That's it! The installer will:
+The installer will:
 - Download mkv2cast automatically
 - Install to `~/.local/bin/`
 - Set up man page and shell completions
@@ -182,6 +206,10 @@ source ~/.bashrc  # or ~/.zshrc for Zsh users
 ### Update
 
 ```bash
+# PyPI
+pip install --upgrade mkv2cast
+
+# Script
 curl -fsSL https://raw.githubusercontent.com/voldardard/mkv2cast/main/install.sh | bash -s -- --update
 ```
 
@@ -792,17 +820,25 @@ Encoding fails with VAAPI on AMD GPU...
 
 ## Roadmap
 
-Future features under consideration:
+| Feature | Priority | Complexity | Status |
+|---------|----------|------------|--------|
+| Docker & WebUI | Medium | High | Planned |
+| Watch mode (inotify) | Medium | Medium | Planned |
+| NVIDIA NVENC support | Medium | Medium | Planned |
+| Profiles (fast/balanced/quality) | Low | Low | Planned |
+| Subtitle extraction | Low | Medium | Planned |
+| HDR to SDR tone mapping | Low | High | Planned |
+| Integration Plex/Jellyfin | Low | High | Planned |
 
-- [ ] Support for additional output formats (WebM)
-- [ ] Subtitle extraction and conversion
-- [ ] Chapter preservation improvements
-- [ ] Web UI for monitoring progress
-- [ ] Batch queue management
-- [ ] Integration with media servers (Plex, Jellyfin)
-- [ ] HDR to SDR tone mapping
-- [ ] NVIDIA NVENC support
-- [ ] Docker container
+### Recent Additions (v1.1.0)
+
+- ✅ Multi-language support (EN, FR, ES, IT, DE)
+- ✅ Desktop notifications
+- ✅ PyPI distribution
+- ✅ Comprehensive test suite
+- ✅ GitHub Actions CI/CD
+- ✅ AUR & Debian packaging
+- ✅ Sphinx documentation
 
 Have a feature request? Open an issue!
 

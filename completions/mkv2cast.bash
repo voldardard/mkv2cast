@@ -48,6 +48,8 @@ _mkv2cast_completions() {
         --pipeline --no-pipeline
         --encode-workers
         --integrity-workers
+        --notify --no-notify
+        --lang
         --show-dirs
         --history
         --history-stats
@@ -126,6 +128,11 @@ _mkv2cast_completions() {
         --history)
             # Number of lines
             COMPREPLY=( $(compgen -W "10 20 50 100 200 500 1000" -- "${cur}") )
+            return 0
+            ;;
+        --lang)
+            # Supported languages
+            COMPREPLY=( $(compgen -W "en fr es it de" -- "${cur}") )
             return 0
             ;;
         -I|--ignore-pattern|-i|--include-pattern)

@@ -1,0 +1,140 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mkv2cast"
+dynamic = ["version"]
+description = "Smart MKV to Chromecast-compatible converter with hardware acceleration"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+requires-python = ">=3.8"
+authors = [
+    {name = "voldardard"}
+]
+keywords = ["mkv", "chromecast", "converter", "ffmpeg", "vaapi", "qsv", "video", "transcoding"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Video :: Conversion",
+]
+dependencies = []  # No mandatory dependencies - all Python standard library
+
+[project.optional-dependencies]
+rich = ["rich>=13.0.0"]
+notifications = ["plyer>=2.1.0"]
+full = [
+    "rich>=13.0.0",
+    "tomli>=2.0.0; python_version < '3.11'",
+    "plyer>=2.1.0",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+    "sphinx>=7.0",
+    "sphinx-rtd-theme>=2.0",
+]
+
+[project.scripts]
+mkv2cast = "mkv2cast.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/voldardard/mkv2cast"
+Documentation = "https://mkv2cast.readthedocs.io"
+Repository = "https://github.com/voldardard/mkv2cast"
+Issues = "https://github.com/voldardard/mkv2cast/issues"
+Changelog = "https://github.com/voldardard/mkv2cast/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/completions",
+    "/man",
+    "/systemd",
+    "/docs",
+    "/tests",
+    "/README.md",
+    "/LICENSE",
+    "/CHANGELOG.md",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mkv2cast"]
+
+[tool.hatch.build.targets.wheel.sources]
+"src" = ""
+
+# Dynamic version from __init__.py
+[tool.hatch.version]
+path = "src/mkv2cast/__init__.py"
+
+# Include compiled translation files
+[tool.hatch.build.targets.wheel.shared-data]
+# Note: .mo files should be pre-compiled before building
+
+# Ruff configuration
+[tool.ruff]
+target-version = "py38"
+line-length = 120
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+    "B905",  # zip strict
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["mkv2cast"]
+
+# Mypy configuration
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = false
+warn_unused_configs = true
+ignore_missing_imports = true
+check_untyped_defs = false
+disallow_untyped_defs = false
+
+# Pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["src/mkv2cast"]
+branch = true
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]

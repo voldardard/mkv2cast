@@ -1,0 +1,24 @@
+mkv2cast (1.1.0-1) unstable; urgency=medium
+
+  * Restructure as proper Python package
+  * Add internationalization support (EN, FR, ES, IT, DE)
+  * Add desktop notifications
+  * Add comprehensive test suite
+  * Add PyPI distribution support
+  * Improve documentation
+
+ -- voldardard <voldardard@example.com>  Sat, 18 Jan 2026 00:00:00 +0000
+
+mkv2cast (1.0.0-1) unstable; urgency=medium
+
+  * Initial release
+  * Intelligent codec detection (H.264, H.265/HEVC, AV1)
+  * Hardware acceleration (VAAPI, Intel QSV)
+  * Parallel processing with pipeline mode
+  * Rich progress UI with multiple workers
+  * Automatic French audio track selection
+  * Integrity checking
+  * XDG Base Directory compliance
+  * Conversion history with SQLite
+
+ -- voldardard <voldardard@example.com>  Sat, 18 Jan 2026 00:00:00 +0000
