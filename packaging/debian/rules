@@ -15,3 +15,9 @@ override_dh_auto_install:
 	# Install systemd user units
 	install -Dm644 systemd/mkv2cast-cleanup.service debian/mkv2cast/usr/lib/systemd/user/mkv2cast-cleanup.service
 	install -Dm644 systemd/mkv2cast-cleanup.timer debian/mkv2cast/usr/lib/systemd/user/mkv2cast-cleanup.timer
+	# Install optional system-wide cleanup units
+	install -Dm644 systemd/mkv2cast-cleanup-system.service debian/mkv2cast/usr/lib/systemd/system/mkv2cast-cleanup-system.service
+	install -Dm644 systemd/mkv2cast-cleanup-system.timer debian/mkv2cast/usr/lib/systemd/system/mkv2cast-cleanup-system.timer
+	# Install watch mode units (user)
+	install -Dm644 systemd/mkv2cast-watch.service debian/mkv2cast/usr/lib/systemd/user/mkv2cast-watch.service
+	install -Dm644 systemd/mkv2cast-watch.timer debian/mkv2cast/usr/lib/systemd/user/mkv2cast-watch.timer

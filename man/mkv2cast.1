@@ -4,7 +4,7 @@
 .\" Copyright (C) 2024-2026 voldardard
 .\" License: GPL-3.0
 .\"
-.TH MKV2CAST 1 "January 2026" "mkv2cast 1.2.1" "User Commands"
+.TH MKV2CAST 1 "January 2026" "mkv2cast 1.2.4" "User Commands"
 .\"
 .\" ==================== NAME ====================
 .SH NAME
@@ -94,6 +94,14 @@ Only process files in matching paths. Can be used multiple times.
 .br
 Examples: \fB\-\-include\-path Movies\fR, \fB\-\-include\-path /data/films\fR
 .\"
+.SS "Watch Mode"
+.TP
+.B \-\-watch
+Monitor a directory for new MKV files and convert automatically. Use the optional positional argument (file or directory) to set the watch path; defaults to the current directory.
+.TP
+.BI \-\-watch\-interval " SECONDS"
+Polling interval for watch mode when watchdog/inotify is not available. Default: \fB5\fR seconds.
+.\"
 .SS "Debug/Test Options"
 .TP
 .BR \-d ", " \-\-debug
@@ -179,6 +187,31 @@ NVENC constant quality (0-51, lower = better). Default: \fB23\fR
 .TP
 .BI \-\-amf\-quality " VALUE"
 AMD AMF quality (0-51, lower = better). Default: \fB23\fR
+.\"
+.SS "Audio Selection"
+.TP
+.BI \-\-audio\-lang " LANGS"
+Comma-separated language priority for audio tracks (e.g., \fBfre,fra,fr,eng\fR). Falls back to the first available track.
+.TP
+.BI \-\-audio\-track " INDEX"
+Explicit audio track index (0-based). Overrides language preference when set.
+.\"
+.SS "Subtitle Selection"
+.TP
+.BI \-\-subtitle\-lang " LANGS"
+Comma-separated subtitle languages to include (e.g., \fBfre,eng\fR).
+.TP
+.BI \-\-subtitle\-track " INDEX"
+Explicit subtitle track index (0-based).
+.TP
+.B \-\-prefer\-forced\-subs
+Prefer forced subtitles in the selected audio language (default).
+.TP
+.B \-\-no\-forced\-subs
+Do not prefer forced subtitles when selecting tracks.
+.TP
+.B \-\-no\-subtitles
+Disable all subtitle embedding.
 .\"
 .SS "Integrity Checks"
 .TP

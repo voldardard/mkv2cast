@@ -9,7 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.2.1] - 2026-01-19
+## [1.2.4] - 2026-01-26
+
+### Added
+- Myst-parser is now part of dev dependencies so Sphinx builds work out of the box
+
+### Changed
+- AUR and Debian packaging aligned for 1.2.4 release (completions, timers, watch units)
+- Documentation and README version references updated to 1.2.4
+
+### Fixed
+- Sphinx build failure due to missing `myst_parser` extension
+
+---
+
+## [1.2.3] - 2026-01-19
 
 ### Added
 - **Python API Progress Callbacks**: New `progress_callback` parameter for `convert_file()`

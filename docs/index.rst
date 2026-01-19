@@ -35,11 +35,14 @@ Features
 --------
 
 - **Intelligent codec detection** - Automatically detects H.264, H.265/HEVC, and AV1
-- **Hardware acceleration** - Supports VAAPI and Intel Quick Sync (QSV)
+- **Hardware acceleration** - Supports NVIDIA NVENC, AMD AMF, Intel QSV, and VAAPI (auto-pick)
 - **Parallel processing** - Multi-threaded encoding with pipeline mode
 - **Rich progress UI** - Beautiful progress display with multiple workers
 - **Automatic audio selection** - Prefers French audio tracks (configurable)
+- **Audio & subtitle selection** - Choose by language or explicit track index
 - **Integrity checking** - Verifies files before processing
+- **Watch mode** - Watchdog/inotify monitoring with optional systemd service
+- **JSON progress** - Stream structured events for dashboards or integrations
 - **XDG compliant** - Follows XDG Base Directory specification
 - **Multi-language** - Supports EN, FR, ES, IT, DE
 - **Desktop notifications** - Get notified when conversions complete
@@ -85,6 +88,7 @@ Contents
    usage/advanced
    usage/hardware-acceleration
    usage/filtering
+   usage/library-guide
    usage/python-api
 
 .. toctree::

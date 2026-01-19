@@ -1,3 +1,11 @@
+mkv2cast (1.2.4-1) unstable; urgency=medium
+
+  * Add myst-parser to dev extras to fix Sphinx docs build
+  * Ship watch mode systemd units and cleanup timers in Debian package
+  * Prepare 1.2.4 release aligned with AUR and PyPI versions
+
+ -- voldardard <voldardard@example.com>  Sun, 26 Jan 2026 00:00:00 +0000
+
 mkv2cast (1.1.0-1) unstable; urgency=medium
 
   * Restructure as proper Python package

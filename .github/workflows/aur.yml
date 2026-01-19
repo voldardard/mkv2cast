@@ -3,13 +3,18 @@ name: AUR Publish
 on:
   release:
     types: [published]
+  push:
+    tags:
+      - "v*"
 
 jobs:
   aur:
     name: Publish to AUR
     runs-on: ubuntu-latest
     # Only run for stable releases (not pre-releases)
-    if: "!github.event.release.prerelease"
+    if: |
+      (github.event_name == 'release' && !github.event.release.prerelease) ||
+      (github.event_name != 'release' && !contains(github.ref, '-beta') && !contains(github.ref, '-alpha') && !contains(github.ref, '-rc'))
     
     steps:
       - name: Checkout

@@ -64,6 +64,8 @@ Convert your MKV video files to formats compatible with Chromecast devices and S
 - **Desktop Notifications**: Get notified when conversions complete (via notify-send or plyer)
 - **Multi-Language Support**: Available in English, French, Spanish, Italian, and German
 - **PyPI Distribution**: Easy installation via `pip install mkv2cast`
+- **GPU Acceleration**: NVIDIA NVENC, AMD AMF, Intel QSV, and VAAPI backends with auto-detection
+- **Watch Mode**: Inotify/watchdog-based auto-conversion with optional systemd unit
 
 ---
 
@@ -71,7 +73,7 @@ Convert your MKV video files to formats compatible with Chromecast devices and S
 
 | | |
 |---|---|
-| **Version** | 1.2.1 |
+| **Version** | 1.2.4 |
 | **Author** | voldardard |
 | **Date** | January 2026 |
 | **License** | GPL-3.0 |
@@ -195,6 +197,8 @@ yay -S mkv2cast
 paru -S mkv2cast
 ```
 
+The AUR package ships the man page, bash/zsh completions, and both user + system cleanup timers by default.
+
 ### Debian/Ubuntu (APT Repository)
 
 Add the official APT repository for automatic updates:
@@ -212,10 +216,12 @@ Or download the `.deb` package directly from [GitHub Releases](https://github.co
 
 ```bash
 # Download and install specific version
-wget https://github.com/voldardard/mkv2cast/releases/download/v1.1.2/mkv2cast_1.1.2-1_all.deb
-sudo dpkg -i mkv2cast_1.1.2-1_all.deb
+wget https://github.com/voldardard/mkv2cast/releases/download/v1.2.4/mkv2cast_1.2.4-1_all.deb
+sudo dpkg -i mkv2cast_1.2.4-1_all.deb
 sudo apt-get install -f  # Install dependencies
 ```
+
+Debian packages install the man page, bash/zsh completions, the user cleanup timer, and the optional system-wide cleanup timer. The watch mode service and timer are also available under the user systemd directory.
 
 ### Script Install (One-Liner)
 
@@ -1237,27 +1243,23 @@ docker-compose up -d
 
 | Feature | Priority | Complexity | Status |
 |---------|----------|------------|--------|
-| NVIDIA NVENC support | High | Medium | 🚧 In Progress |
-| Audio track selection | High | Low | 🚧 In Progress |
-| Subtitle selection | High | Medium | 🚧 In Progress |
-| Watch mode (inotify) | Medium | Medium | 🚧 In Progress |
-| Profiles (fast/balanced/quality) | Medium | Low | Planned |
+| Profiles (fast/balanced/quality) | Medium | Low | 🚧 In Progress |
 | HDR to SDR tone mapping | Low | High | Planned |
 | Webhooks notifications | Low | Low | Planned |
-| AMD AMF support | Low | Medium | Planned |
 | Metadata preservation | Low | Medium | Planned |
 | Integration Plex/Jellyfin | Low | High | Planned |
+| Automatic device capability detection (Chromecast/TV) | Medium | Medium | Idea |
+| Metrics export (Prometheus/StatsD) from history and live runs | Low | Medium | Idea |
+| Remote/agent workers for headless servers | Low | High | Idea |
 
-### Recent Additions (v1.1.x)
+### Recent Additions (v1.2.x)
 
-- ✅ Multi-language support (EN, FR, ES, IT, DE)
-- ✅ Desktop notifications
-- ✅ PyPI distribution
-- ✅ Comprehensive test suite
-- ✅ GitHub Actions CI/CD
-- ✅ AUR & Debian packaging
-- ✅ APT repository for Debian/Ubuntu
-- ✅ Sphinx documentation on GitHub Pages
+- ✅ NVIDIA NVENC & AMD AMF hardware acceleration (auto-priority)
+- ✅ Audio & subtitle selection by language or track index
+- ✅ Watch mode (watchdog/inotify) with systemd unit and timer
+- ✅ JSON progress output + Python callbacks for integrations
+- ✅ Library-friendly config factory (`Config.for_library`) and batch API
+- ✅ Multi-language CLI (EN, FR, ES, IT, DE) and desktop notifications
 
 Have a feature request? [Open an issue](https://github.com/voldardard/mkv2cast/issues)!
 
