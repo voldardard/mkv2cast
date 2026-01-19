@@ -7,9 +7,10 @@ Uses SQLite as primary storage with JSONL fallback if SQLite is unavailable.
 
 import datetime
 import json
+import threading
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 # SQLite support (usually available, but check anyway)
 try:
@@ -277,3 +278,112 @@ class HistoryDB:
                 for line in entries:
                     f.write(line + "\n")
             return removed
+
+
+class HistoryRecorder:
+    """Track in-flight conversions and safely persist history updates."""
+
+    def __init__(self, history_db: Optional[HistoryDB], backend: str) -> None:
+        self._history_db = history_db
+        self._backend = backend
+        self._lock = threading.Lock()
+        self._active: Dict[str, Tuple[int, float]] = {}
+
+    def start(self, input_path: Path, input_size: int = 0) -> int:
+        """Record a conversion start and track it for later completion."""
+        if self._history_db is None:
+            return 0
+
+        if input_size <= 0:
+            try:
+                input_size = input_path.stat().st_size
+            except Exception:
+                input_size = 0
+
+        try:
+            entry_id = self._history_db.record_start(input_path, self._backend, input_size)
+        except Exception:
+            return 0
+
+        with self._lock:
+            self._active[str(input_path)] = (entry_id, time.time())
+
+        return entry_id
+
+    def finish(
+        self,
+        input_path: Path,
+        status: str,
+        output_path: Optional[Path] = None,
+        encode_time: float = 0,
+        integrity_time: float = 0,
+        output_size: int = 0,
+        duration_ms: int = 0,
+        error_msg: Optional[str] = None,
+    ) -> None:
+        """Record completion for a tracked conversion."""
+        if self._history_db is None:
+            return
+
+        entry_id = 0
+        started_at = 0.0
+        key = str(input_path)
+
+        with self._lock:
+            entry_id, started_at = self._active.pop(key, (0, 0.0))
+
+        if entry_id <= 0:
+            if status == "skipped" and error_msg:
+                self.skip(input_path, error_msg)
+            return
+
+        if duration_ms <= 0 and started_at:
+            duration_ms = int((time.time() - started_at) * 1000)
+
+        try:
+            self._history_db.record_finish(
+                entry_id,
+                output_path,
+                status,
+                encode_time=encode_time,
+                integrity_time=integrity_time,
+                output_size=output_size,
+                duration_ms=duration_ms,
+                error_msg=error_msg,
+            )
+        except Exception:
+            pass
+
+    def skip(self, input_path: Path, reason: str) -> None:
+        """Record a skipped file without a prior start entry."""
+        if self._history_db is None:
+            return
+
+        try:
+            self._history_db.record_skip(input_path, reason, self._backend)
+        except Exception:
+            pass
+
+    def interrupt_all(self, reason: str = "interrupted") -> None:
+        """Mark any active conversions as interrupted."""
+        if self._history_db is None:
+            return
+
+        with self._lock:
+            items = list(self._active.items())
+            self._active.clear()
+
+        now = time.time()
+
+        for _path_str, (entry_id, started_at) in items:
+            duration_ms = int((now - started_at) * 1000) if started_at else 0
+            try:
+                self._history_db.record_finish(
+                    entry_id,
+                    None,
+                    "interrupted",
+                    duration_ms=duration_ms,
+                    error_msg=reason,
+                )
+            except Exception:
+                pass

@@ -35,7 +35,7 @@ from mkv2cast.converter import (
     test_amf,
     test_nvenc,
 )
-from mkv2cast.history import SQLITE_AVAILABLE, HistoryDB
+from mkv2cast.history import SQLITE_AVAILABLE, HistoryDB, HistoryRecorder
 from mkv2cast.i18n import _, setup_i18n
 from mkv2cast.integrity import integrity_check as do_integrity_check
 from mkv2cast.json_progress import JSONProgressOutput, parse_ffmpeg_progress_for_json
@@ -1134,6 +1134,8 @@ def main_json_progress(single: Optional[Path], cfg: Config) -> Tuple[int, int, i
         return 0, 0, 0, 0, False
 
     backend = pick_backend(cfg)
+    history = HistoryRecorder(HISTORY_DB, backend)
+    history = HistoryRecorder(HISTORY_DB, backend)
     json_out = JSONProgressOutput()
 
     # Probe durations for all files
@@ -1147,15 +1149,19 @@ def main_json_progress(single: Optional[Path], cfg: Config) -> Tuple[int, int, i
         if is_our_output_or_tmp(str(inp), cfg):
             continue
 
+        history.start(inp)
+        integrity_time = 0.0
+
         log_path = get_log_path(inp)
 
         # Integrity check
         if cfg.integrity_check:
             json_out.file_checking(inp)
-            check_result = do_integrity_check(inp, True, cfg.stable_wait, cfg.deep_check)
+            success, integrity_time = do_integrity_check(inp, True, cfg.stable_wait, cfg.deep_check)
             json_out.file_check_done(inp)
-            if not check_result:
+            if not success:
                 json_out.file_done(inp, skipped=True, error="integrity failed")
+                history.finish(inp, "skipped", error_msg="integrity failed", integrity_time=integrity_time)
                 skipped += 1
                 continue
 
@@ -1163,11 +1169,13 @@ def main_json_progress(single: Optional[Path], cfg: Config) -> Tuple[int, int, i
             d = decide_for(inp, cfg)
         except Exception as e:
             json_out.file_done(inp, error=str(e))
+            history.finish(inp, "failed", error_msg=str(e), integrity_time=integrity_time)
             failed += 1
             continue
 
         if (not d.need_v) and (not d.need_a) and cfg.skip_when_ok:
             json_out.file_done(inp, skipped=True)
+            history.finish(inp, "skipped", error_msg="compatible", integrity_time=integrity_time)
             skipped += 1
             continue
 
@@ -1182,6 +1190,7 @@ def main_json_progress(single: Optional[Path], cfg: Config) -> Tuple[int, int, i
         final = inp.parent / f"{inp.stem}{tag}{cfg.suffix}.{cfg.container}"
         if final.exists():
             json_out.file_done(inp, output_path=final, skipped=True)
+            history.finish(inp, "skipped", output_path=final, error_msg="output exists", integrity_time=integrity_time)
             skipped += 1
             continue
 
@@ -1192,10 +1201,12 @@ def main_json_progress(single: Optional[Path], cfg: Config) -> Tuple[int, int, i
 
         if cfg.dryrun:
             json_out.file_done(inp, skipped=True)
+            history.finish(inp, "skipped", error_msg="dryrun", integrity_time=integrity_time)
             skipped += 1
             continue
 
         json_out.file_encoding_start(inp, dur_ms)
+        start_encode = time.time()
 
         try:
             proc = subprocess.Popen(
@@ -1226,32 +1237,67 @@ def main_json_progress(single: Optional[Path], cfg: Config) -> Tuple[int, int, i
         except KeyboardInterrupt:
             interrupted = True
             interrupted_count += 1
+            encode_time = time.time() - start_encode
             if tmp.exists():
                 tmp.unlink(missing_ok=True)
             json_out.file_done(inp, error="interrupted")
+            history.finish(
+                inp,
+                "interrupted",
+                error_msg="interrupted",
+                encode_time=encode_time,
+                integrity_time=integrity_time,
+            )
             break
         except Exception as e:
             failed += 1
+            encode_time = time.time() - start_encode
             if tmp.exists():
                 tmp.unlink(missing_ok=True)
             json_out.file_done(inp, error=str(e))
+            history.finish(inp, "failed", error_msg=str(e), encode_time=encode_time, integrity_time=integrity_time)
             continue
+
+        encode_time = time.time() - start_encode
 
         if rc == 0:
             try:
                 shutil.move(str(tmp), str(final))
                 ok += 1
                 json_out.file_done(inp, output_path=final)
+                output_size = final.stat().st_size if final.exists() else 0
+                history.finish(
+                    inp,
+                    "done",
+                    output_path=final,
+                    encode_time=encode_time,
+                    integrity_time=integrity_time,
+                    output_size=output_size,
+                )
             except Exception as e:
                 failed += 1
                 if tmp.exists():
                     tmp.unlink(missing_ok=True)
                 json_out.file_done(inp, error=f"move failed: {e}")
+                history.finish(
+                    inp,
+                    "failed",
+                    error_msg=f"move failed: {e}",
+                    encode_time=encode_time,
+                    integrity_time=integrity_time,
+                )
         else:
             failed += 1
             if tmp.exists():
                 tmp.unlink(missing_ok=True)
             json_out.file_done(inp, error=f"ffmpeg returned {rc}")
+            history.finish(
+                inp,
+                "failed",
+                error_msg=f"ffmpeg returned {rc}",
+                encode_time=encode_time,
+                integrity_time=integrity_time,
+            )
 
     json_out.complete()
     return ok, skipped, failed, interrupted_count, interrupted
@@ -1265,6 +1311,8 @@ def main_legacy(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int
 
     root = Path(".").resolve()
     backend = pick_backend(cfg)
+    history = HistoryRecorder(HISTORY_DB, backend)
+    history = HistoryRecorder(HISTORY_DB, backend)
     print(f"{_('Backend selected')}: {backend}", flush=True)
 
     ui = LegacyProgressUI(cfg.progress, cfg.bar_width)
@@ -1281,20 +1329,25 @@ def main_legacy(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int
     interrupted = False
 
     for _i, inp in enumerate(targets, start=1):
+        history.start(inp)
+        integrity_time = 0.0
+
         if output_exists_for_input(inp, cfg):
             skipped += 1
+            history.finish(inp, "skipped", error_msg="output exists", integrity_time=integrity_time)
             continue
 
         log_path = get_log_path(inp)
         ui.log(f"==> {inp}")
 
         # Integrity check
-        success, _elapsed = do_integrity_check(
+        success, integrity_time = do_integrity_check(
             inp, enabled=cfg.integrity_check, stable_wait=cfg.stable_wait, deep_check=cfg.deep_check, log_path=log_path
         )
         if not success:
             skipped += 1
             ui.log(f"   SKIP: {_('integrity check failed')}")
+            history.finish(inp, "skipped", error_msg="integrity check failed", integrity_time=integrity_time)
             continue
 
         try:
@@ -1302,11 +1355,13 @@ def main_legacy(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int
         except Exception as e:
             failed += 1
             ui.log(f"   FAILED: {e}")
+            history.finish(inp, "failed", error_msg=str(e), integrity_time=integrity_time)
             continue
 
         if (not d.need_v) and (not d.need_a) and cfg.skip_when_ok:
             skipped += 1
             ui.log(f"   OK: {_('compatible')}")
+            history.finish(inp, "skipped", error_msg="compatible", integrity_time=integrity_time)
             continue
 
         tag = ""
@@ -1320,6 +1375,7 @@ def main_legacy(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int
         final = inp.parent / f"{inp.stem}{tag}{cfg.suffix}.{cfg.container}"
         if final.exists():
             skipped += 1
+            history.finish(inp, "skipped", error_msg="output exists", integrity_time=integrity_time)
             continue
 
         tmp = get_tmp_path(inp, 0, tag, cfg)
@@ -1330,40 +1386,77 @@ def main_legacy(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int
         if cfg.dryrun:
             ui.log(f"DRYRUN: {' '.join(cmd)}")
             skipped += 1
+            history.finish(inp, "skipped", error_msg="dryrun", integrity_time=integrity_time)
             continue
 
         probe_duration_ms(inp)
+        start_encode = time.time()
 
         try:
             result = subprocess.run(cmd, capture_output=True, timeout=86400)
             rc = result.returncode
         except KeyboardInterrupt:
             interrupted = True
+            encode_time = time.time() - start_encode
             if tmp.exists():
                 tmp.unlink(missing_ok=True)
+            history.finish(
+                inp,
+                "interrupted",
+                error_msg="interrupted",
+                encode_time=encode_time,
+                integrity_time=integrity_time,
+            )
             break
         except Exception as e:
             failed += 1
+            encode_time = time.time() - start_encode
             if tmp.exists():
                 tmp.unlink(missing_ok=True)
             ui.log(f"   FAILED: {e}")
+            history.finish(inp, "failed", error_msg=str(e), encode_time=encode_time, integrity_time=integrity_time)
             continue
+
+        encode_time = time.time() - start_encode
 
         if rc == 0:
             try:
                 shutil.move(str(tmp), str(final))
                 ok += 1
                 ui.log("   DONE")
+                output_size = final.stat().st_size if final.exists() else 0
+                history.finish(
+                    inp,
+                    "done",
+                    output_path=final,
+                    encode_time=encode_time,
+                    integrity_time=integrity_time,
+                    output_size=output_size,
+                )
             except Exception as e:
                 failed += 1
                 if tmp.exists():
                     tmp.unlink(missing_ok=True)
                 ui.log(f"   FAILED: {e}")
+                history.finish(
+                    inp,
+                    "failed",
+                    error_msg=str(e),
+                    encode_time=encode_time,
+                    integrity_time=integrity_time,
+                )
         else:
             failed += 1
             if tmp.exists():
                 tmp.unlink(missing_ok=True)
             ui.log(f"   FAILED (rc={rc})")
+            history.finish(
+                inp,
+                "failed",
+                error_msg=f"ffmpeg returned {rc}",
+                encode_time=encode_time,
+                integrity_time=integrity_time,
+            )
 
     return ok, skipped, failed, 1 if interrupted else 0, interrupted
 
@@ -1378,6 +1471,8 @@ def main_rich(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int, 
     ui = SimpleRichUI(cfg.progress)
     root = Path(".").resolve()
     backend = pick_backend(cfg)
+    history = HistoryRecorder(HISTORY_DB, backend)
+    history = HistoryRecorder(HISTORY_DB, backend)
 
     ui.console.print(f"[bold]mkv2cast[/bold] v{__version__}")
     ui.console.print(f"[dim]{_('Backend')}:[/dim] [cyan]{backend}[/cyan]")
@@ -1398,19 +1493,24 @@ def main_rich(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int, 
     interrupted = False
 
     for idx, inp in enumerate(targets, start=1):
+        history.start(inp)
+        integrity_time = 0.0
+
         if output_exists_for_input(inp, cfg):
             skipped += 1
+            history.finish(inp, "skipped", error_msg="output exists", integrity_time=integrity_time)
             continue
 
         log_path = get_log_path(inp)
 
         # Integrity check
-        success, _elapsed = do_integrity_check(
+        success, integrity_time = do_integrity_check(
             inp, enabled=cfg.integrity_check, stable_wait=cfg.stable_wait, deep_check=cfg.deep_check, log_path=log_path
         )
         if not success:
             ui.log_file_start(inp, inp)
             ui.log_skip(_("integrity check failed"))
+            history.finish(inp, "skipped", error_msg="integrity check failed", integrity_time=integrity_time)
             continue
 
         try:
@@ -1418,11 +1518,13 @@ def main_rich(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int, 
         except Exception as e:
             ui.log_file_start(inp, inp)
             ui.log_error(str(e))
+            history.finish(inp, "failed", error_msg=str(e), integrity_time=integrity_time)
             continue
 
         if (not d.need_v) and (not d.need_a) and cfg.skip_when_ok:
             ui.log_file_start(inp, inp)
             ui.log_compatible()
+            history.finish(inp, "skipped", error_msg="compatible", integrity_time=integrity_time)
             continue
 
         tag = ""
@@ -1436,6 +1538,7 @@ def main_rich(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int, 
         final = inp.parent / f"{inp.stem}{tag}{cfg.suffix}.{cfg.container}"
         if final.exists():
             skipped += 1
+            history.finish(inp, "skipped", error_msg="output exists", integrity_time=integrity_time)
             continue
 
         tmp = get_tmp_path(inp, 0, tag, cfg)
@@ -1446,6 +1549,7 @@ def main_rich(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int, 
         if cfg.dryrun:
             ui.console.print(f"  [dim]DRYRUN: {' '.join(cmd)}[/dim]")
             skipped += 1
+            history.finish(inp, "skipped", error_msg="dryrun", integrity_time=integrity_time)
             continue
 
         dur_ms = probe_duration_ms(inp)
@@ -1455,13 +1559,23 @@ def main_rich(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int, 
             rc, stderr = ui.run_ffmpeg_with_progress(cmd, stage, dur_ms, idx, total_files)
         except KeyboardInterrupt:
             interrupted = True
+            encode_time = time.time() - start_encode
             if tmp.exists():
                 tmp.unlink(missing_ok=True)
+            history.finish(
+                inp,
+                "interrupted",
+                error_msg="interrupted",
+                encode_time=encode_time,
+                integrity_time=integrity_time,
+            )
             break
         except Exception as e:
             ui.log_error(str(e))
             if tmp.exists():
                 tmp.unlink(missing_ok=True)
+            encode_time = time.time() - start_encode
+            history.finish(inp, "failed", error_msg=str(e), encode_time=encode_time, integrity_time=integrity_time)
             continue
 
         encode_time = time.time() - start_encode
@@ -1471,14 +1585,36 @@ def main_rich(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, int, 
                 shutil.move(str(tmp), str(final))
                 output_size = final.stat().st_size if final.exists() else 0
                 ui.log_success(encode_time, output_size)
+                history.finish(
+                    inp,
+                    "done",
+                    output_path=final,
+                    encode_time=encode_time,
+                    integrity_time=integrity_time,
+                    output_size=output_size,
+                )
             except Exception as e:
                 ui.log_error(str(e))
                 if tmp.exists():
                     tmp.unlink(missing_ok=True)
+                history.finish(
+                    inp,
+                    "failed",
+                    error_msg=str(e),
+                    encode_time=encode_time,
+                    integrity_time=integrity_time,
+                )
         else:
             ui.log_error(f"ffmpeg exit code {rc}")
             if tmp.exists():
                 tmp.unlink(missing_ok=True)
+            history.finish(
+                inp,
+                "failed",
+                error_msg=f"ffmpeg returned {rc}",
+                encode_time=encode_time,
+                integrity_time=integrity_time,
+            )
 
     ok, skipped, failed, _processed = ui.get_stats()
 
@@ -1496,6 +1632,7 @@ def main_pipeline(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, i
 
     root = Path(".").resolve()
     backend = pick_backend(cfg)
+    history = HistoryRecorder(HISTORY_DB, backend)
 
     # Collect targets
     targets, ignored_files = collect_targets(root, single, cfg)
@@ -1529,6 +1666,7 @@ def main_pipeline(single: Optional[Path], cfg: Config) -> Tuple[int, int, int, i
         backend=backend,
         ui=ui,
         cfg=cfg,
+        history=history,
         encode_workers=encode_workers,
         integrity_workers=integrity_workers,
         get_log_path=get_log_path,
@@ -1563,18 +1701,26 @@ def run_watch_mode(single: Optional[Path], cfg: Config, interval: float) -> int:
     print(f"mkv2cast v{__version__} - {_('Watch Mode')}")
     print()
 
+    backend = pick_backend(cfg)
+    history = HistoryRecorder(HISTORY_DB, backend)
+    history = HistoryRecorder(HISTORY_DB, backend)
+
     def convert_single(filepath: Path) -> None:
         """Convert a single file when detected."""
-        from mkv2cast.converter import convert_file, pick_backend
+        from mkv2cast.converter import convert_file
 
-        backend = pick_backend(cfg)
         print(f"[{_('NEW')}] {filepath.name}")
+
+        history.start(filepath)
+        start_encode = time.time()
 
         success, output_path, message = convert_file(
             input_path=filepath,
             cfg=cfg,
             backend=backend,
         )
+
+        encode_time = time.time() - start_encode
 
         if success:
             if output_path:
@@ -1583,6 +1729,28 @@ def run_watch_mode(single: Optional[Path], cfg: Config, interval: float) -> int:
                 print(f"  [⊘] {_('Skipped')}: {message}")
         else:
             print(f"  [✗] {_('Failed')}: {message}")
+
+        skip_reason = message
+        is_skip = (
+            output_path is None
+            or skip_reason.startswith("Already compatible")
+            or skip_reason.startswith("Output already exists")
+            or skip_reason.startswith("DRYRUN:")
+        )
+
+        if success and not is_skip and output_path:
+            output_size = output_path.stat().st_size if output_path.exists() else 0
+            history.finish(
+                filepath,
+                "done",
+                output_path=output_path,
+                output_size=output_size,
+                encode_time=encode_time,
+            )
+        elif success:
+            history.finish(filepath, "skipped", error_msg=skip_reason, encode_time=encode_time)
+        else:
+            history.finish(filepath, "failed", error_msg=message, encode_time=encode_time)
 
     try:
         watch_directory(

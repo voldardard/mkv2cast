@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.7] - 2026-01-27
+
+### Fixed
+- Conversion history now records results across all CLI modes (legacy, rich, JSON progress, pipeline, watch)
+- Interruptions (Ctrl+C) correctly mark running conversions as interrupted to prevent stale "running" stats
+
+---
+
 ## [1.2.5] - 2026-01-26
 
 ### Added

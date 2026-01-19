@@ -25,6 +25,7 @@ from mkv2cast.converter import (
     enforce_output_quota,
     probe_duration_ms,
 )
+from mkv2cast.history import HistoryRecorder
 from mkv2cast.i18n import _
 from mkv2cast.integrity import check_ffprobe_valid, file_size
 from mkv2cast.ui.rich_ui import RichProgressUI
@@ -267,11 +268,13 @@ class PipelineOrchestrator:
         get_log_path: Callable[[Path], Path],
         get_tmp_path: Callable[[Path, int, str], Path],
         output_exists_fn: Callable[[Path, Config], bool],
+        history: Optional[HistoryRecorder] = None,
     ):
         self.targets = targets
         self.backend = backend
         self.ui = ui
         self.cfg = cfg
+        self.history = history
         self.encode_workers_count = encode_workers
         self.integrity_workers_count = integrity_workers
         self.get_log_path = get_log_path
@@ -318,10 +321,18 @@ class PipelineOrchestrator:
                 break
 
             filename = inp.name
+            input_size = file_size(inp)
+            integrity_time = 0.0
+
+            if self.history:
+                self.history.start(inp, input_size)
 
             # Check if output already exists
             if self.output_exists_fn(inp, self.cfg):
-                self.ui.mark_skipped(inp, _("output exists"))
+                reason = _("output exists")
+                self.ui.mark_skipped(inp, reason)
+                if self.history:
+                    self.history.finish(inp, "skipped", error_msg=reason, integrity_time=integrity_time)
                 continue
 
             log_path = self.get_log_path(inp)
@@ -332,22 +343,34 @@ class PipelineOrchestrator:
                     inp, self.ui, worker_id, filename, log_path, self.stop_event, self.cfg
                 )
                 if not success:
-                    self.ui.mark_skipped(inp, _("integrity failed"))
+                    reason = _("integrity failed")
+                    self.ui.mark_skipped(inp, reason)
+                    if self.history:
+                        self.history.finish(inp, "skipped", error_msg=reason, integrity_time=integrity_time)
                     continue
             except Exception as e:
-                self.ui.mark_failed(inp, _("integrity error") + f": {e}")
+                reason = _("integrity error") + f": {e}"
+                self.ui.mark_failed(inp, reason)
+                if self.history:
+                    self.history.finish(inp, "failed", error_msg=reason, integrity_time=integrity_time)
                 continue
 
             # Analyze file
             try:
                 d = decide_for(inp, self.cfg)
             except Exception as e:
-                self.ui.mark_failed(inp, _("analysis error") + f": {e}")
+                reason = _("analysis error") + f": {e}"
+                self.ui.mark_failed(inp, reason)
+                if self.history:
+                    self.history.finish(inp, "failed", error_msg=reason, integrity_time=integrity_time)
                 continue
 
             # Check if already compatible
             if (not d.need_v) and (not d.need_a) and self.cfg.skip_when_ok:
-                self.ui.mark_skipped(inp, _("compatible"))
+                reason = _("compatible")
+                self.ui.mark_skipped(inp, reason)
+                if self.history:
+                    self.history.finish(inp, "skipped", error_msg=reason, integrity_time=integrity_time)
                 continue
 
             # Build output paths
@@ -361,18 +384,25 @@ class PipelineOrchestrator:
 
             final = inp.parent / f"{inp.stem}{tag}{self.cfg.suffix}.{self.cfg.container}"
             if final.exists():
-                self.ui.mark_skipped(inp, _("output exists"))
+                reason = _("output exists")
+                self.ui.mark_skipped(inp, reason)
+                if self.history:
+                    self.history.finish(inp, "skipped", error_msg=reason, integrity_time=integrity_time)
                 continue
 
             tmp = self.get_tmp_path(inp, worker_id, tag)
             if tmp.exists():
-                self.ui.mark_skipped(inp, _("tmp exists"))
+                reason = _("tmp exists")
+                self.ui.mark_skipped(inp, reason)
+                if self.history:
+                    self.history.finish(inp, "skipped", error_msg=reason, integrity_time=integrity_time)
                 continue
 
-            input_size = file_size(inp)
             space_error = check_disk_space(final.parent, tmp.parent, input_size, self.cfg)
             if space_error:
                 self.ui.mark_failed(inp, space_error)
+                if self.history:
+                    self.history.finish(inp, "failed", error_msg=space_error, integrity_time=integrity_time)
                 continue
 
             # Build ffmpeg command
@@ -381,7 +411,10 @@ class PipelineOrchestrator:
 
             if self.cfg.dryrun:
                 self.ui.log(f"DRYRUN: {' '.join(cmd)}")
-                self.ui.mark_skipped(inp, _("dryrun"))
+                reason = _("dryrun")
+                self.ui.mark_skipped(inp, reason)
+                if self.history:
+                    self.history.finish(inp, "skipped", error_msg=reason, integrity_time=integrity_time)
                 continue
 
             # Create encode job
@@ -415,6 +448,7 @@ class PipelineOrchestrator:
             total_attempts = 1 + attempts
             attempt_backend = self.backend
             last_error = ""
+            encode_time_total = 0.0
 
             for attempt in range(total_attempts):
                 if attempt > 0:
@@ -426,6 +460,8 @@ class PipelineOrchestrator:
                 cmd, _stage = build_transcode_cmd(
                     job.inp, job.decision, attempt_backend, job.tmp, job.log_path, self.cfg
                 )
+
+                attempt_start = time.time()
 
                 try:
                     rc = run_ffmpeg_with_progress(
@@ -444,6 +480,8 @@ class PipelineOrchestrator:
                     rc = -1
                     last_error = _("encode error") + f": {e}"
 
+                encode_time_total += time.time() - attempt_start
+
                 if rc == 0:
                     try:
                         shutil.move(str(job.tmp), str(job.final))
@@ -451,15 +489,41 @@ class PipelineOrchestrator:
                         if quota_error:
                             job.final.unlink(missing_ok=True)
                             self.ui.mark_failed(job.inp, quota_error)
+                            if self.history:
+                                self.history.finish(
+                                    job.inp,
+                                    "failed",
+                                    error_msg=quota_error,
+                                    encode_time=encode_time_total,
+                                    integrity_time=job.integrity_time,
+                                )
                         else:
                             output_size = job.final.stat().st_size if job.final.exists() else 0
                             self.ui.mark_done(job.inp, final_path=job.final, output_size=output_size)
+                            if self.history:
+                                self.history.finish(
+                                    job.inp,
+                                    "done",
+                                    output_path=job.final,
+                                    output_size=output_size,
+                                    encode_time=encode_time_total,
+                                    integrity_time=job.integrity_time,
+                                )
                     except Exception as e:
                         try:
                             job.tmp.unlink(missing_ok=True)
                         except Exception:
                             pass
-                        self.ui.mark_failed(job.inp, _("move error") + f": {e}")
+                        reason = _("move error") + f": {e}"
+                        self.ui.mark_failed(job.inp, reason)
+                        if self.history:
+                            self.history.finish(
+                                job.inp,
+                                "failed",
+                                error_msg=reason,
+                                encode_time=encode_time_total,
+                                integrity_time=job.integrity_time,
+                            )
                     break
 
                 # Cleanup temp file before retry
@@ -469,7 +533,16 @@ class PipelineOrchestrator:
                     pass
 
                 if self.stop_event.is_set():
-                    self.ui.mark_failed(job.inp, _("interrupted"))
+                    reason = _("interrupted")
+                    self.ui.mark_failed(job.inp, reason)
+                    if self.history:
+                        self.history.finish(
+                            job.inp,
+                            "interrupted",
+                            error_msg=reason,
+                            encode_time=encode_time_total,
+                            integrity_time=job.integrity_time,
+                        )
                     break
 
                 if attempt < total_attempts - 1:
@@ -478,6 +551,14 @@ class PipelineOrchestrator:
                     continue
 
                 self.ui.mark_failed(job.inp, last_error)
+                if self.history:
+                    self.history.finish(
+                        job.inp,
+                        "failed",
+                        error_msg=last_error,
+                        encode_time=encode_time_total,
+                        integrity_time=job.integrity_time,
+                    )
                 break
 
     def run(self) -> Tuple[int, int, int, bool]:
@@ -521,6 +602,9 @@ class PipelineOrchestrator:
             signal.signal(signal.SIGINT, old_handler)
             self.ui.stop()
             terminate_all_processes()
+
+        if self.interrupted and self.history:
+            self.history.interrupt_all()
 
         # Get final stats
         ok, skipped, failed, _processed = self.ui.get_stats()
