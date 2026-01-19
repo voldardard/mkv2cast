@@ -35,7 +35,8 @@ help:
 	@echo "  Release:"
 	@echo "    make version      - Show current version"
 	@echo "    make release V=x.y.z - Bump version, run checks, and build"
-	@echo "    make deploy V=x.y.z  - Full release: bump, check, build, commit, tag, push"
+	@echo "    make deploy V=x.y.z [FORCE=1] - Full release: bump, check, build, commit, tag, push"
+	@echo "                                    Use FORCE=1 to overwrite existing tag"
 	@echo ""
 	@echo "  Packaging:"
 	@echo "    make deb          - Build Debian package (requires devscripts)"
@@ -77,10 +78,13 @@ endif
 # Full deployment: release + git operations
 deploy:
 ifndef V
-	$(error Usage: make deploy V=1.2.0)
+	$(error Usage: make deploy V=1.2.0 [FORCE=1])
 endif
 	@echo "══════════════════════════════════════════════════════"
 	@echo "  Deploying release v$(V)"
+	@if [ "$(FORCE)" = "1" ]; then \
+		echo "  [FORCE MODE: Will overwrite existing tag]"; \
+	fi
 	@echo "══════════════════════════════════════════════════════"
 	@echo ""
 	@echo "→ Formatting code..."
@@ -96,10 +100,18 @@ endif
 	@echo ""
 	@echo "→ Creating tag v$(V)..."
 	@git tag -d v$(V) 2>/dev/null || true
+	@if [ "$(FORCE)" = "1" ]; then \
+		echo "  → Deleting remote tag (force mode)..."; \
+		git push origin :refs/tags/v$(V) 2>/dev/null || true; \
+	fi
 	@git tag v$(V) -m "Release v$(V)"
 	@echo ""
 	@echo "→ Pushing to origin..."
-	@git push origin HEAD --tags
+	@if [ "$(FORCE)" = "1" ]; then \
+		git push origin HEAD --tags --force; \
+	else \
+		git push origin HEAD --tags; \
+	fi
 	@echo ""
 	@echo "══════════════════════════════════════════════════════"
 	@echo "  ✓ Release v$(V) deployed!"
