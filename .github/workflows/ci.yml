@@ -183,11 +183,29 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Verify version in code matches tag
+        id: verify-version
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          CODE_VERSION=$(grep -Po '__version__ = "\K[^"]+' src/mkv2cast/__init__.py || echo "")
+          echo "Tag version: $TAG_VERSION"
+          echo "Code version: $CODE_VERSION"
+          if [ "$CODE_VERSION" != "$TAG_VERSION" ]; then
+            echo "ERROR: Version mismatch! Tag is v$TAG_VERSION but code has $CODE_VERSION"
+            echo "Updating code to match tag..."
+            sed -i "s/__version__ = \".*\"/__version__ = \"$TAG_VERSION\"/" src/mkv2cast/__init__.py
+            CODE_VERSION=$(grep -Po '__version__ = "\K[^"]+' src/mkv2cast/__init__.py)
+            echo "Updated code version to: $CODE_VERSION"
+          fi
+          echo "version=$TAG_VERSION" >> $GITHUB_OUTPUT
 
       - name: Check version type for PyPI
         id: check-version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION="${{ steps.verify-version.outputs.version }}"
           # Check if it's a patch release (format X.Y.Z-N)
           if echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$$'; then
             # Extract patch number
@@ -219,7 +237,7 @@ jobs:
         if: steps.check-version.outputs.should_publish == 'true' && steps.check-version.outputs.is_patch == 'true'
         id: convert-version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION="${{ steps.verify-version.outputs.version }}"
           # Convert 1.2.7-2 to 1.2.7.post2, 1.2.7-3 to 1.2.7.post3, etc.
           if [[ "$VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)$ ]]; then
             BASE_VERSION="${BASH_REMATCH[1]}"

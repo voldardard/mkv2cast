@@ -61,11 +61,25 @@ jobs:
           #   1.0.1-1  → PATCH_NUMBER=1 → pkgrel=1
           #   1.0.1-2  → PATCH_NUMBER=2 → pkgrel=2
           PKGREL="${{ steps.parse.outputs.patch_number }}"
+          # Full version tag (e.g., 1.2.8-2) for source URL
+          FULL_VERSION="${{ steps.version.outputs.version }}"
+          
           sed -i "s/pkgver=.*/pkgver=$PKGVER/" packaging/arch/PKGBUILD
           sed -i "s/pkgrel=.*/pkgrel=$PKGREL/" packaging/arch/PKGBUILD
+          
+          # Update source URL to use the patch release tag (v1.2.8-2) instead of base version (v1.2.8)
+          # This ensures the tarball contains code with the correct version (1.2.8-2)
+          sed -i "s|source=(\"\$pkgname-\$pkgver.tar.gz::https://github.com/voldardard/\$pkgname/archive/v\$pkgver.tar.gz\")|source=(\"\$pkgname-$FULL_VERSION.tar.gz::https://github.com/voldardard/\$pkgname/archive/v$FULL_VERSION.tar.gz\")|" packaging/arch/PKGBUILD
+          
+          # Update build() directory name to match the extracted tarball name
+          # Tarball v1.2.8-2 extracts to mkv2cast-1.2.8-2, not mkv2cast-1.2.8
+          sed -i "s|cd \"\$pkgname-\$pkgver\"|cd \"\$pkgname-$FULL_VERSION\"|" packaging/arch/PKGBUILD
+          
           echo "Updated PKGBUILD:"
           echo "  pkgver=$PKGVER (from base version)"
           echo "  pkgrel=$PKGREL (PATCH_NUMBER=$PKGREL)"
+          echo "  source tag: v$FULL_VERSION (patch release tag)"
+          echo "  build directory: mkv2cast-$FULL_VERSION"
           cat packaging/arch/PKGBUILD
       
       - name: Publish to AUR
