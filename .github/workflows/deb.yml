@@ -143,8 +143,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y dpkg-dev apt-utils gnupg
       
+      - name: Check if GPG key is configured
+        id: check_gpg
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          if [ -n "$GPG_PRIVATE_KEY" ]; then
+            echo "gpg_configured=true" >> $GITHUB_OUTPUT
+          else
+            echo "gpg_configured=false" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Import GPG key
-        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        if: steps.check_gpg.outputs.gpg_configured == 'true'
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE || '' }}
@@ -227,7 +238,7 @@ jobs:
           cat Release
       
       - name: Sign Release file
-        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        if: steps.check_gpg.outputs.gpg_configured == 'true'
         env:
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE || '' }}
         run: |
@@ -254,7 +265,7 @@ jobs:
           ls -la Release*
       
       - name: Warning if GPG not configured
-        if: ${{ secrets.GPG_PRIVATE_KEY == '' }}
+        if: steps.check_gpg.outputs.gpg_configured == 'false'
         run: |
           echo "::warning::GPG_PRIVATE_KEY secret is not configured. Repository will be unsigned."
           echo "To enable GPG signing, add GPG_PRIVATE_KEY and GPG_PASSPHRASE to GitHub Secrets."
