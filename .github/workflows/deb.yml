@@ -171,9 +171,6 @@ jobs:
           KEY_ID=$(gpg --list-secret-keys --keyid-format LONG | grep -E "^(sec|SEC)" | head -1 | awk '{print $2}' | cut -d'/' -f2)
           echo "GPG_KEY_ID=$KEY_ID" >> $GITHUB_ENV
           
-          # Trust the key
-          echo "$KEY_ID:6:" | gpg --import-ownertrust
-          
           # Export public key for distribution
           gpg --armor --export "$KEY_ID" > public-key.gpg
           echo "Public key exported to public-key.gpg"
@@ -251,14 +248,15 @@ jobs:
           fi
           
           # Sign Release file (detached signature)
+          # Use --yes to automatically trust the key for signing
           if [ -n "$GPG_PASSPHRASE" ]; then
-            echo "$GPG_PASSPHRASE" | gpg --batch --pinentry-mode loopback --passphrase-fd 0 \
+            echo "$GPG_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
               --sign --detach-sign --armor --output Release.gpg Release
-            echo "$GPG_PASSPHRASE" | gpg --batch --pinentry-mode loopback --passphrase-fd 0 \
+            echo "$GPG_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
               --clearsign --output InRelease Release
           else
-            gpg --sign --detach-sign --armor --output Release.gpg Release
-            gpg --clearsign --output InRelease Release
+            gpg --batch --yes --sign --detach-sign --armor --output Release.gpg Release
+            gpg --batch --yes --clearsign --output InRelease Release
           fi
           
           echo "Release file signed successfully"
