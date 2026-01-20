@@ -11,7 +11,7 @@ jobs:
   aur:
     name: Publish to AUR
     runs-on: ubuntu-latest
-    # Only run for stable releases (includes patch releases like 1.1.1-1, but not beta/alpha/rc)
+    # Only run for patch releases (format X.Y.Z-N, not base versions like X.Y.Z)
     if: |
       (github.event_name == 'release' && !github.event.release.prerelease) ||
       (github.event_name != 'release' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-beta') && !contains(github.ref, '-alpha') && !contains(github.ref, '-rc'))
@@ -27,8 +27,23 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Releasing version: $VERSION"
       
+      - name: Check if patch release
+        id: check-patch
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          # Only process patch releases (format X.Y.Z-N)
+          if echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$$'; then
+            echo "is_patch=true" >> $GITHUB_OUTPUT
+            echo "Processing patch release: $VERSION"
+          else
+            echo "is_patch=false" >> $GITHUB_OUTPUT
+            echo "Skipping base version (not a patch release): $VERSION"
+            exit 0
+          fi
+
       - name: Parse version (extract base and patch)
         id: parse
+        if: steps.check-patch.outputs.is_patch == 'true'
         run: |
           source scripts/parse_version.sh "${{ steps.version.outputs.version }}"
           echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
@@ -37,20 +52,24 @@ jobs:
           echo "Patch number: $PATCH_NUMBER"
       
       - name: Update PKGBUILD version
+        if: steps.check-patch.outputs.is_patch == 'true'
         run: |
           # Use base version for pkgver (AUR doesn't allow hyphens in pkgver)
           PKGVER="${{ steps.parse.outputs.base_version }}"
-          # Use patch number for pkgrel (or 1 if no patch)
+          # Use patch number directly for pkgrel (no +1)
+          # Examples:
+          #   1.0.1-1  → PATCH_NUMBER=1 → pkgrel=1
+          #   1.0.1-2  → PATCH_NUMBER=2 → pkgrel=2
           PKGREL="${{ steps.parse.outputs.patch_number }}"
-          if [ "$PKGREL" = "0" ]; then
-            PKGREL="1"  # AUR pkgrel starts at 1
-          fi
           sed -i "s/pkgver=.*/pkgver=$PKGVER/" packaging/arch/PKGBUILD
           sed -i "s/pkgrel=.*/pkgrel=$PKGREL/" packaging/arch/PKGBUILD
           echo "Updated PKGBUILD:"
+          echo "  pkgver=$PKGVER (from base version)"
+          echo "  pkgrel=$PKGREL (PATCH_NUMBER=$PKGREL)"
           cat packaging/arch/PKGBUILD
       
       - name: Publish to AUR
+        if: steps.check-patch.outputs.is_patch == 'true'
         uses: KSXGitHub/github-actions-deploy-aur@v2.7.2
         with:
           pkgname: mkv2cast

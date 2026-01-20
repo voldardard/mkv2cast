@@ -9,6 +9,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.8] - 2026-01-20
+
+### Added
+- **APT Repository GPG Signing**: Full GPG signature support for the APT repository
+  - Automatic signing of `Release` file with GPG during repository updates
+  - Generation of `Release.gpg` (detached signature) and `InRelease` (inline signed)
+  - Public key distribution via GitHub Pages for secure repository verification
+  - Support for both passphrase-protected and unprotected GPG keys
+- **GPG Key Management Scripts**: New scripts for key generation and export
+  - `scripts/generate_gpg_key.sh`: Generate GPG key pairs for repository signing
+  - `scripts/export_gpg_key.sh`: Export public keys for distribution
+  - Automatic key ID detection and fingerprint display
+- **GPG Documentation**: Comprehensive signing guide
+  - `docs/package-signing.md`: Complete guide for setting up GPG signing
+  - `GPG-KEY.md`: Public key information and verification instructions
+  - Key rotation and management best practices
+- **Secure Installation Instructions**: Updated APT installation with GPG verification
+  - Instructions for importing GPG public key using `signed-by` option
+  - Fallback to `trusted=yes` mode when GPG key is not available
+  - Key fingerprint verification guidance in documentation
+
+### Changed
+- **APT Repository Workflow**: Enhanced `.github/workflows/deb.yml` with GPG signing
+  - Automatic import of GPG private key from GitHub Secrets
+  - Export and publication of public key to APT repository
+  - Graceful degradation when GPG secrets are not configured (warning only)
+  - Support for both passphrase-protected and unprotected keys
+- **Installation Documentation**: Updated with GPG-secured repository instructions
+  - `README.md`: APT installation now uses `signed-by` instead of `trusted=yes`
+  - `docs/getting-started/installation.rst`: GPG verification instructions
+  - HTML repository page: Dynamic instructions based on key availability
+- **Security Enhancements**: Improved `.gitignore` for key protection
+  - Automatic exclusion of private key files (`gpg-private-key-*.asc`, `*private*.gpg`)
+  - Public keys explicitly allowed in repository
+  - Protection against accidental private key commits
+
+### Fixed
+- Repository signing workflow handles missing GPG secrets gracefully
+- Public key preservation across repository updates
+- Key export format compatibility with APT requirements
+
+### Documentation
+- New `docs/package-signing.md` guide covering:
+  - GPG key generation and setup
+  - GitHub Secrets configuration
+  - Key rotation procedures
+  - Troubleshooting common issues
+  - Security best practices
+- `GPG-KEY.md` with key information, fingerprint, and verification commands
+- Updated installation instructions in README and Sphinx docs
+
+---
+
 ## [1.2.7] - 2026-01-27
 
 ### Fixed
@@ -263,5 +316,13 @@ This is the initial release. For fresh installations, simply run `./install.sh`.
 - [Issue Tracker](https://github.com/voldardard/mkv2cast/issues)
 - [GPL-3.0 License](https://www.gnu.org/licenses/gpl-3.0.html)
 
-[Unreleased]: https://github.com/voldardard/mkv2cast/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/voldardard/mkv2cast/compare/v1.2.8...HEAD
+[1.2.8]: https://github.com/voldardard/mkv2cast/compare/v1.2.7...v1.2.8
+[1.2.7]: https://github.com/voldardard/mkv2cast/compare/v1.2.5...v1.2.7
+[1.2.5]: https://github.com/voldardard/mkv2cast/compare/v1.2.3...v1.2.5
+[1.2.3]: https://github.com/voldardard/mkv2cast/compare/v1.2.0...v1.2.3
+[1.2.0]: https://github.com/voldardard/mkv2cast/compare/v1.1.2...v1.2.0
+[1.1.2]: https://github.com/voldardard/mkv2cast/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/voldardard/mkv2cast/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/voldardard/mkv2cast/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/voldardard/mkv2cast/releases/tag/v1.0.0

@@ -184,16 +184,43 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check version type for PyPI
+        id: check-version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          # Check if it's a patch release (format X.Y.Z-N)
+          if echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$$'; then
+            # Extract patch number
+            PATCH_NUM=$(echo "$VERSION" | sed -n 's/.*-\([0-9]*\)$/\1/p')
+            if [ "$PATCH_NUM" = "1" ]; then
+              echo "should_publish=false" >> $GITHUB_OUTPUT
+              echo "Skipping first patch release (1.0.1-1) - not publishing to PyPI"
+              exit 0
+            else
+              echo "should_publish=true" >> $GITHUB_OUTPUT
+              echo "is_patch=true" >> $GITHUB_OUTPUT
+              echo "patch_number=$PATCH_NUM" >> $GITHUB_OUTPUT
+              echo "Processing patch release: $VERSION (will be published as .post$PATCH_NUM)"
+            fi
+          else
+            # Base version (X.Y.Z) - publish as-is
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+            echo "is_patch=false" >> $GITHUB_OUTPUT
+            echo "Processing base version: $VERSION"
+          fi
+
       - name: Set up Python
+        if: steps.check-version.outputs.should_publish == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Convert patch release to PEP 440 format for PyPI
+        if: steps.check-version.outputs.should_publish == 'true' && steps.check-version.outputs.is_patch == 'true'
         id: convert-version
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          # Convert 1.2.7-1 to 1.2.7.post1 for PyPI (PEP 440 compatible)
+          # Convert 1.2.7-2 to 1.2.7.post2, 1.2.7-3 to 1.2.7.post3, etc.
           if [[ "$VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)$ ]]; then
             BASE_VERSION="${BASH_REMATCH[1]}"
             PATCH_NUM="${BASH_REMATCH[2]}"
@@ -209,26 +236,29 @@ jobs:
           echo "original_version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Install build tools
+        if: steps.check-version.outputs.should_publish == 'true'
         run: pip install build
 
       - name: Build package with PEP 440 version
+        if: steps.check-version.outputs.should_publish == 'true'
         run: python -m build
 
       - name: Restore original version
-        if: steps.convert-version.outputs.pypi_version != steps.convert-version.outputs.original_version
+        if: steps.check-version.outputs.should_publish == 'true' && steps.check-version.outputs.is_patch == 'true' && steps.convert-version.outputs.pypi_version != steps.convert-version.outputs.original_version
         run: |
           sed -i "s/__version__ = \".*\"/__version__ = \"${{ steps.convert-version.outputs.original_version }}\"/" src/mkv2cast/__init__.py
 
       - name: Publish to PyPI
+        if: steps.check-version.outputs.should_publish == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
 
-  # Create GitHub Release for stable versions
+  # Create GitHub Release for patch releases only
   # This triggers aur.yml and deb.yml workflows
   create-release:
     name: Create GitHub Release
     needs: [release, detect-release-type]
-    # Only run on stable tags (includes patch releases like 1.1.1-1)
-    if: startsWith(github.ref, 'refs/tags/v') && needs.detect-release-type.outputs.is-stable == 'true'
+    # Only run on patch releases (format X.Y.Z-N, not base versions)
+    if: startsWith(github.ref, 'refs/tags/v') && needs.detect-release-type.outputs.is-patch-release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write

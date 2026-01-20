@@ -98,13 +98,29 @@ endif
 	@echo "→ Committing release..."
 	@git commit -m "chore: release v$(V)" --allow-empty
 	@echo ""
-	@echo "→ Creating tag v$(V)..."
-	@git tag -d v$(V) 2>/dev/null || true
-	@if [ "$(FORCE)" = "1" ]; then \
-		echo "  → Deleting remote tag (force mode)..."; \
-		git push origin :refs/tags/v$(V) 2>/dev/null || true; \
+	@# Check if version has patch number (contains -N)
+	@if echo "$(V)" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$$'; then \
+		echo "→ Creating tag v$(V) (patch release)..."; \
+		git tag -d v$(V) 2>/dev/null || true; \
+		if [ "$(FORCE)" = "1" ]; then \
+			echo "  → Deleting remote tag (force mode)..."; \
+			git push origin :refs/tags/v$(V) 2>/dev/null || true; \
+		fi; \
+		git tag v$(V) -m "Release v$(V)"; \
+	else \
+		echo "→ Creating tags v$(V) and v$(V)-1 (base + patch release)..."; \
+		BASE_TAG="v$(V)"; \
+		PATCH_TAG="v$(V)-1"; \
+		git tag -d $$BASE_TAG 2>/dev/null || true; \
+		git tag -d $$PATCH_TAG 2>/dev/null || true; \
+		if [ "$(FORCE)" = "1" ]; then \
+			echo "  → Deleting remote tags (force mode)..."; \
+			git push origin :refs/tags/$$BASE_TAG 2>/dev/null || true; \
+			git push origin :refs/tags/$$PATCH_TAG 2>/dev/null || true; \
+		fi; \
+		git tag $$BASE_TAG -m "Release $$BASE_TAG"; \
+		git tag $$PATCH_TAG -m "Release $$PATCH_TAG"; \
 	fi
-	@git tag v$(V) -m "Release v$(V)"
 	@echo ""
 	@echo "→ Pushing to origin..."
 	@if [ "$(FORCE)" = "1" ]; then \

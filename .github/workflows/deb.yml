@@ -16,7 +16,7 @@ jobs:
   build-deb:
     name: Build Debian Package
     runs-on: ubuntu-latest
-    # Only run for stable releases (includes patch releases like 1.1.1-1, but not beta/alpha/rc)
+    # Only run for patch releases (format X.Y.Z-N, not base versions like X.Y.Z)
     if: |
       (github.event_name == 'release' && !github.event.release.prerelease) ||
       (github.event_name != 'release' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-beta') && !contains(github.ref, '-alpha') && !contains(github.ref, '-rc'))
@@ -29,8 +29,21 @@ jobs:
         id: version
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Building Debian package for version: $VERSION"
+          # Only process patch releases (format X.Y.Z-N)
+          if echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$$'; then
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Building Debian package for patch release: $VERSION"
+          else
+            echo "Skipping base version (not a patch release): $VERSION"
+            echo "version=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+      
+      - name: Check if patch release
+        if: steps.version.outputs.version == ''
+        run: |
+          echo "Not a patch release, skipping Debian build"
+          exit 0
       
       - name: Install build dependencies
         run: |
@@ -49,12 +62,14 @@ jobs:
             apt-utils
       
       - name: Update debian/changelog version
+        if: steps.version.outputs.version != ''
         run: |
           cd packaging/debian
           sed -i "1s/([^)]*)/(${{ steps.version.outputs.version }}-1)/" changelog
           cat changelog
       
       - name: Prepare source directory
+        if: steps.version.outputs.version != ''
         run: |
           mkdir -p build-deb/mkv2cast-${{ steps.version.outputs.version }}
           cp -r src pyproject.toml README.md LICENSE CHANGELOG.md man completions systemd \
@@ -62,6 +77,7 @@ jobs:
           cp -r packaging/debian build-deb/mkv2cast-${{ steps.version.outputs.version }}/
       
       - name: Build Debian package
+        if: steps.version.outputs.version != ''
         run: |
           cd build-deb/mkv2cast-${{ steps.version.outputs.version }}
           dpkg-buildpackage -us -uc -b
@@ -127,6 +143,31 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y dpkg-dev apt-utils gnupg
       
+      - name: Import GPG key
+        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE || '' }}
+        run: |
+          # Create GPG directory
+          mkdir -p ~/.gnupg
+          chmod 700 ~/.gnupg
+          
+          # Import private key
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          
+          # Get key ID
+          KEY_ID=$(gpg --list-secret-keys --keyid-format LONG | grep -E "^(sec|SEC)" | head -1 | awk '{print $2}' | cut -d'/' -f2)
+          echo "GPG_KEY_ID=$KEY_ID" >> $GITHUB_ENV
+          
+          # Trust the key
+          echo "$KEY_ID:6:" | gpg --import-ownertrust
+          
+          # Export public key for distribution
+          gpg --armor --export "$KEY_ID" > public-key.gpg
+          echo "Public key exported to public-key.gpg"
+          gpg --fingerprint "$KEY_ID"
+      
       - name: Download Debian artifact
         uses: actions/download-artifact@v4
         with:
@@ -185,6 +226,39 @@ jobs:
           
           cat Release
       
+      - name: Sign Release file
+        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE || '' }}
+        run: |
+          cd dists/stable
+          
+          # Check if key is available
+          if ! gpg --list-secret-keys --keyid-format LONG | grep -q "sec"; then
+            echo "Warning: No GPG key found, skipping signature"
+            exit 0
+          fi
+          
+          # Sign Release file (detached signature)
+          if [ -n "$GPG_PASSPHRASE" ]; then
+            echo "$GPG_PASSPHRASE" | gpg --batch --pinentry-mode loopback --passphrase-fd 0 \
+              --sign --detach-sign --armor --output Release.gpg Release
+            echo "$GPG_PASSPHRASE" | gpg --batch --pinentry-mode loopback --passphrase-fd 0 \
+              --clearsign --output InRelease Release
+          else
+            gpg --sign --detach-sign --armor --output Release.gpg Release
+            gpg --clearsign --output InRelease Release
+          fi
+          
+          echo "Release file signed successfully"
+          ls -la Release*
+      
+      - name: Warning if GPG not configured
+        if: ${{ secrets.GPG_PRIVATE_KEY == '' }}
+        run: |
+          echo "::warning::GPG_PRIVATE_KEY secret is not configured. Repository will be unsigned."
+          echo "To enable GPG signing, add GPG_PRIVATE_KEY and GPG_PASSPHRASE to GitHub Secrets."
+      
       - name: Create index.html
         run: |
           cat > index.html << 'EOF'
@@ -207,8 +281,13 @@ jobs:
             <h2>Installation</h2>
             <p>Add the repository to your system:</p>
             <pre>
-          # Add the repository
-          echo "deb [trusted=yes] https://voldardard.github.io/mkv2cast/apt stable main" | sudo tee /etc/apt/sources.list.d/mkv2cast.list
+          # Download and add GPG public key (if available)
+          if curl -fsSL https://voldardard.github.io/mkv2cast/apt/public-key.gpg > /dev/null 2>&1; then
+            curl -fsSL https://voldardard.github.io/mkv2cast/apt/public-key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/mkv2cast.gpg
+            echo "deb [signed-by=/etc/apt/keyrings/mkv2cast.gpg] https://voldardard.github.io/mkv2cast/apt stable main" | sudo tee /etc/apt/sources.list.d/mkv2cast.list
+          else
+            echo "deb [trusted=yes] https://voldardard.github.io/mkv2cast/apt stable main" | sudo tee /etc/apt/sources.list.d/mkv2cast.list
+          fi
 
           # Update and install
           sudo apt update
@@ -216,8 +295,7 @@ jobs:
             </pre>
             
             <div class="note">
-              <strong>Note:</strong> This repository uses <code>[trusted=yes]</code> as packages are not GPG signed.
-              For production use, consider using the PyPI package: <code>pip install mkv2cast</code>
+              <strong>Note:</strong> This repository supports GPG signing for security. If the public key is available at <a href="public-key.gpg">public-key.gpg</a>, use the signed-by method above. Otherwise, the repository will use trusted=yes mode.
             </div>
             
             <h2>Alternative Installation Methods</h2>
@@ -247,6 +325,14 @@ jobs:
           mv pool apt/ 2>/dev/null || true
           mv dists apt/ 2>/dev/null || true
           mv index.html apt/ 2>/dev/null || true
+          
+          # Copy public key if it exists (from current step or previous runs)
+          if [ -f public-key.gpg ]; then
+            cp public-key.gpg apt/ 2>/dev/null || true
+          elif [ -f apt/public-key.gpg ]; then
+            # Keep existing public key if new one wasn't generated
+            echo "Keeping existing public key"
+          fi
           
           git add -A
           VERSION_REF="${GITHUB_REF#refs/tags/}"

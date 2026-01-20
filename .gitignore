@@ -75,3 +75,9 @@ test_*.mkv
 *.tar.gz
 *.zip
 tmp/
+
+# GPG keys - protect private keys, allow public keys
+gpg-private-key-*.asc
+*private*.gpg
+*private*.asc
+# Note: public-key.gpg and gpg-public-key-*.asc are intentionally NOT ignored

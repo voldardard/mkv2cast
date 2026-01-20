@@ -225,13 +225,18 @@ The AUR package ships the man page, bash/zsh completions, and both user + system
 Add the official APT repository for automatic updates:
 
 ```bash
-# Add the repository
-echo "deb [trusted=yes] https://voldardard.github.io/mkv2cast/apt stable main" | sudo tee /etc/apt/sources.list.d/mkv2cast.list
+# Download and add GPG public key
+curl -fsSL https://voldardard.github.io/mkv2cast/apt/public-key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/mkv2cast.gpg
+
+# Add the repository with GPG verification
+echo "deb [signed-by=/etc/apt/keyrings/mkv2cast.gpg] https://voldardard.github.io/mkv2cast/apt stable main" | sudo tee /etc/apt/sources.list.d/mkv2cast.list
 
 # Update and install
 sudo apt update
 sudo apt install mkv2cast
 ```
+
+**Note**: The repository is GPG signed for security. The public key is available at [public-key.gpg](https://voldardard.github.io/mkv2cast/apt/public-key.gpg). You can verify the key fingerprint before adding it to your system.
 
 Or download the `.deb` package directly from [GitHub Releases](https://github.com/voldardard/mkv2cast/releases):
 
