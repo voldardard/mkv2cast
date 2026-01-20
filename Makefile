@@ -93,35 +93,41 @@ endif
 	@# Check if version has patch number (contains -N)
 	@if echo "$(V)" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$$'; then \
 		BASE_VERSION=$$(echo "$(V)" | sed 's/-[0-9]*$$//'); \
-		echo "→ Patch release detected: $(V) (base: $$BASE_VERSION)"; \
-		echo "→ Creating both base tag (v$$BASE_VERSION) and patch tag (v$(V))..."; \
-		echo ""; \
-		echo "→ Step 1: Creating base version $$BASE_VERSION..."; \
-		./scripts/bump_version.sh $$BASE_VERSION; \
-		if [ -n "$$(git status --porcelain)" ]; then \
-			echo "→ Staging all changes..."; \
-			git add -A; \
-		fi; \
-		git commit -m "chore: release v$$BASE_VERSION" --allow-empty; \
 		BASE_TAG="v$$BASE_VERSION"; \
-		if git rev-parse "$$BASE_TAG" >/dev/null 2>&1; then \
-			if [ "$(FORCE)" != "1" ]; then \
-				echo "ERROR: Tag $$BASE_TAG already exists locally. Use FORCE=1 to overwrite."; \
-				exit 1; \
+		echo "→ Patch release detected: $(V) (base: $$BASE_VERSION)"; \
+		# If base tag already exists and we're not forcing, skip base tag creation. \
+		if git rev-parse "$$BASE_TAG" >/dev/null 2>&1 && [ "$(FORCE)" != "1" ]; then \
+			echo "→ Base tag $$BASE_TAG already exists, skipping base tag creation."; \
+			echo ""; \
+		else \
+			echo "→ Creating both base tag (v$$BASE_VERSION) and patch tag (v$(V))..."; \
+			echo ""; \
+			echo "→ Step 1: Creating base version $$BASE_VERSION..."; \
+			./scripts/bump_version.sh $$BASE_VERSION; \
+			if [ -n "$$(git status --porcelain)" ]; then \
+				echo "→ Staging all changes..."; \
+				git add -A; \
 			fi; \
-			git tag -d $$BASE_TAG 2>/dev/null || true; \
-		fi; \
-		if git ls-remote --tags origin "$$BASE_TAG" 2>/dev/null | grep -q "$$BASE_TAG"; then \
-			if [ "$(FORCE)" != "1" ]; then \
-				echo "ERROR: Tag $$BASE_TAG already exists on remote. Use FORCE=1 to overwrite."; \
-				exit 1; \
+			git commit -m "chore: release v$$BASE_VERSION" --allow-empty; \
+			if git rev-parse "$$BASE_TAG" >/dev/null 2>&1; then \
+				if [ "$(FORCE)" != "1" ]; then \
+					echo "ERROR: Tag $$BASE_TAG already exists locally. Use FORCE=1 to overwrite."; \
+					exit 1; \
+				fi; \
+				git tag -d $$BASE_TAG 2>/dev/null || true; \
 			fi; \
-			echo "  → Deleting remote tag $$BASE_TAG (force mode)..."; \
-			git push origin :refs/tags/$$BASE_TAG 2>/dev/null || true; \
+			if git ls-remote --tags origin "$$BASE_TAG" 2>/dev/null | grep -q "$$BASE_TAG"; then \
+				if [ "$(FORCE)" != "1" ]; then \
+					echo "ERROR: Tag $$BASE_TAG already exists on remote. Use FORCE=1 to overwrite."; \
+					exit 1; \
+				fi; \
+				echo "  → Deleting remote tag $$BASE_TAG (force mode)..."; \
+				git push origin :refs/tags/$$BASE_TAG 2>/dev/null || true; \
+			fi; \
+			git tag $$BASE_TAG -m "Release $$BASE_TAG"; \
+			echo "  ✓ Created tag $$BASE_TAG"; \
+			echo ""; \
 		fi; \
-		git tag $$BASE_TAG -m "Release $$BASE_TAG"; \
-		echo "  ✓ Created tag $$BASE_TAG"; \
-		echo ""; \
 		echo "→ Step 2: Creating patch version $(V)..."; \
 		./scripts/bump_version.sh $(V); \
 		if [ -n "$$(git status --porcelain)" ]; then \
