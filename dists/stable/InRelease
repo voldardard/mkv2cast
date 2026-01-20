@@ -1,3 +1,6 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
 Origin: mkv2cast
 Label: mkv2cast
 Suite: stable
@@ -21,3 +24,19 @@ SHA256:
  e98c3aaa560283560e4dabf2c9b684ed6ab398f4595bca33b78f2a8660e4f56b 785 main/binary-amd64/Packages.gz
  8aea13a4370cfce31b1c479b001e594059bbccd3ee2b44c011670d54dea18dab 1261 main/binary-arm64/Packages
  e98c3aaa560283560e4dabf2c9b684ed6ab398f4595bca33b78f2a8660e4f56b 785 main/binary-arm64/Packages.gz
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEENnKwcOZcCia7dZdZ+a6uYsS7JWMFAmluyS8ACgkQ+a6uYsS7
+JWP7cQ//UBuL9CZoAQbb5NLjwydRcS/OtQ4plp3Zfj0f177kVbiBCYPWkPxLUinF
+nrvrZQV8ASvj/ZSbzNvxGOY/DJVA+p5dW4bvIEMXv5Kc/If6SnOWVFcBuKmsdOFJ
+VOQFzS8Bz04YkBH0pqWf9f9NXAfjHvTssQhnelsaOwdW0lV3pH9K0j9Z3TbDM2Oo
+vYOGCVpq3wGR5h+Aoh9+yRoNp59ercZKyEacbgjlRPIrg2kQHZQalZe5VAd97per
+uZ+1t7QxOy0FQqr4X5YV8DReox0e4Yusm49s4J2hJuyALLdDCuaB25/h/XO1hKUH
+/HHKNtGkgOAVfks7zC7YvMY+hDqqbLHOnLmj29f7lmr5XfNyHe7MEU1kDkflA8zp
+JV5aT1e7VGj75btpFrcyy+McHqp9e2CfzU2Bde73//QpRR6RNDYyWCfxvhY6/V/h
+GmWWFt4pBJli1Al5XVA+gPCVskAB/xDKf87rEqIO+QVgR+ppW6tZag3aqhqSliVN
+CbD9FlEx+AqaQEuE2wqRAzgSjaSeIV0w+dnF2hvjPxHxSlj1vhAQeCK5KJvfcer0
+dBx/RsE82pjHK6JIMZSbAYIq54gZPEg6joW41xIhDe2KyXIi4T1c3cKcHRyTNSxS
+0MkBI+4EAY3OrMzozyQSecvhzrODFpwWiX4oD7zVNih+ZjTIdMg=
+=nUrA
+-----END PGP SIGNATURE-----

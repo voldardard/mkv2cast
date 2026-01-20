@@ -17,8 +17,13 @@
   <h2>Installation</h2>
   <p>Add the repository to your system:</p>
   <pre>
-# Add the repository
-echo "deb [trusted=yes] https://voldardard.github.io/mkv2cast/apt stable main" | sudo tee /etc/apt/sources.list.d/mkv2cast.list
+# Download and add GPG public key (if available)
+if curl -fsSL https://voldardard.github.io/mkv2cast/apt/public-key.gpg > /dev/null 2>&1; then
+  curl -fsSL https://voldardard.github.io/mkv2cast/apt/public-key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/mkv2cast.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/mkv2cast.gpg] https://voldardard.github.io/mkv2cast/apt stable main" | sudo tee /etc/apt/sources.list.d/mkv2cast.list
+else
+  echo "deb [trusted=yes] https://voldardard.github.io/mkv2cast/apt stable main" | sudo tee /etc/apt/sources.list.d/mkv2cast.list
+fi
 
 # Update and install
 sudo apt update
@@ -26,8 +31,7 @@ sudo apt install mkv2cast
   </pre>
   
   <div class="note">
-    <strong>Note:</strong> This repository uses <code>[trusted=yes]</code> as packages are not GPG signed.
-    For production use, consider using the PyPI package: <code>pip install mkv2cast</code>
+    <strong>Note:</strong> This repository supports GPG signing for security. If the public key is available at <a href="public-key.gpg">public-key.gpg</a>, use the signed-by method above. Otherwise, the repository will use trusted=yes mode.
   </div>
   
   <h2>Alternative Installation Methods</h2>
