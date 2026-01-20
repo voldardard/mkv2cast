@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.9] - 2026-01-20
+
+### Fixed
+- **Pipeline Rich UI**:
+  - Corrigé un cas où l’encodage avançait bien mais la barre `ENCODE` restait bloquée à 0 % sans ETA sur certaines versions d’FFmpeg (variantes de format de sortie).
+  - Unification du parsing de progrès FFmpeg entre le pipeline Rich (`_parse_ffmpeg_progress`) et l’API Python (`parse_ffmpeg_progress`) pour éviter les divergences.
+  - Meilleur calcul d’ETA et indicateur explicite quand FFmpeg n’émet pas de statistiques de progrès exploitables.
+
+### Tests
+- Ajout de tests pour couvrir les formats de sortie FFmpeg avec virgule décimale (`time=00:01:30,50`) afin de garantir la robustesse du parsing.
+
+---
+
 ## [1.2.8] - 2026-01-20
 
 ### Added

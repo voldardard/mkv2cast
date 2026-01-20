@@ -5,7 +5,6 @@ Manages multiple integrity check and encode workers processing files in parallel
 """
 
 import os
-import re
 import shutil
 import signal
 import subprocess
@@ -23,6 +22,7 @@ from mkv2cast.converter import (
     check_disk_space,
     decide_for,
     enforce_output_quota,
+    parse_ffmpeg_progress,
     probe_duration_ms,
 )
 from mkv2cast.history import HistoryRecorder
@@ -233,23 +233,30 @@ def run_ffmpeg_with_progress(
 
 
 def _parse_ffmpeg_progress(line: str, dur_ms: int) -> Tuple[int, str, int]:
-    """Parse ffmpeg progress line. Returns (percentage, speed, current_ms)."""
-    pct = 0
-    speed = ""
-    out_ms = 0
+    """
+    Parse ffmpeg progress line for the pipeline Rich UI.
 
-    # Parse time
-    m = re.search(r"time=\s*(\d+):(\d+):(\d+)\.(\d+)", line)
-    if m:
-        h, mi, s, cs = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
-        out_ms = (h * 3600 + mi * 60 + s) * 1000 + cs * 10
-        if dur_ms > 0:
-            pct = min(100, int(out_ms * 100 / dur_ms))
+    This is a thin adapter around :func:`mkv2cast.converter.parse_ffmpeg_progress`
+    to keep progress parsing logic consistent between the CLI pipeline and the
+    library/JSON progress APIs.
 
-    # Parse speed
-    m = re.search(r"speed=\s*([0-9.]+)x", line)
-    if m:
-        speed = f"{float(m.group(1)):.1f}x"
+    Returns:
+        Tuple of (percentage, speed_str, current_ms).
+    """
+    info = parse_ffmpeg_progress(line, dur_ms)
+
+    pct_float = info.get("progress_percent") or 0.0
+    try:
+        pct = int(pct_float)
+    except (TypeError, ValueError):
+        pct = 0
+
+    speed = info.get("speed") or ""
+
+    try:
+        out_ms = int(info.get("current_time_ms") or 0)
+    except (TypeError, ValueError):
+        out_ms = 0
 
     return pct, speed, out_ms
 

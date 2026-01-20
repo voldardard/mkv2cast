@@ -1256,6 +1256,12 @@ Found a bug? Please report it!
    - Steps to reproduce the bug
    - Error messages or log files (from `~/.local/state/mkv2cast/logs/`)
 
+If you voyez que la barre `ENCODE` reste bloquée à 0 % alors que le fichier de sortie grossit :
+
+- Essayez d’abord de mettre à jour vers la dernière version de `mkv2cast` (>= 1.2.9).
+- Optionnel : lancez avec `--json-progress` ou `--no-pipeline` pour contourner temporairement la Rich UI.
+- Joignez un extrait du log FFmpeg (fichier `.log` correspondant dans `~/.local/state/mkv2cast/logs/`) ainsi que la sortie complète de la commande.
+
 ### Example Bug Report
 
 ```

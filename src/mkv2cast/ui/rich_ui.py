@@ -132,7 +132,19 @@ class RichProgressUI:
 
     def _format_eta(self, job: JobStatus, elapsed: float) -> str:
         """Calculate ETA for a job based on speed or elapsed time."""
-        if job.pct <= 0 or elapsed <= 0:
+        if elapsed <= 0:
+            return "--:--:--"
+
+        # If we have duration and current position but pct has not been
+        # calculated (e.g. missing/partial stats), approximate from time.
+        if job.pct <= 0 and job.dur_ms > 0 and job.out_ms > 0:
+            remaining_ms = max(0, job.dur_ms - job.out_ms)
+            if remaining_ms > 0:
+                # Assume speed ~1x when we don't have explicit speed info.
+                eta_s = remaining_ms / 1000.0
+                return fmt_hms(eta_s)
+
+        if job.pct <= 0:
             return "--:--:--"
 
         if job.pct >= 100:
@@ -249,6 +261,12 @@ class RichProgressUI:
                 line.append(f" ETA:{eta}", style="dim")
                 line.append(speed_str, style="magenta")
                 line.append(f" {filename}", style="bold yellow")
+
+                # If we are encoding but have not seen any meaningful
+                # progress stats for a while, add a small hint so users
+                # understand that encoding is ongoing even if pct stays 0%.
+                if job.stage == "ENCODE" and job.pct <= 0 and elapsed > 30:
+                    line.append(" (no progress stats)", style="dim")
 
                 parts.append(line)
 

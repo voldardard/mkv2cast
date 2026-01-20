@@ -920,8 +920,9 @@ def parse_ffmpeg_progress(line: str, dur_ms: int) -> Dict[str, Any]:
         "size_bytes": 0,
     }
 
-    # Parse time: time=00:01:23.45
-    m = re.search(r"time=\s*(\d+):(\d+):(\d+)\.(\d+)", line)
+    # Parse time: time=00:01:23.45 (some ffmpeg builds may use comma as decimal separator)
+    # Accept both dot and comma and flexible hour width to be robust across versions/locales.
+    m = re.search(r"time=\s*(\d+):(\d+):(\d+)[\.,](\d+)", line)
     if m:
         h, mi, s, cs = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
         current_ms = (h * 3600 + mi * 60 + s) * 1000 + cs * 10

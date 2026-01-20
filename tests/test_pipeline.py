@@ -70,7 +70,7 @@ class TestFFmpegProgress:
     """Tests for ffmpeg progress parsing."""
 
     def test_parse_ffmpeg_progress_time(self):
-        """Test parsing time from ffmpeg output."""
+        """Test parsing time from ffmpeg output (dot decimal)."""
         pytest.importorskip("rich")
         from mkv2cast.pipeline import _parse_ffmpeg_progress
 
@@ -80,6 +80,18 @@ class TestFFmpegProgress:
         assert pct == 50  # 1:30 of 3:00 = 50%
         assert speed == "2.5x"
         assert out_ms == 90500  # 1:30.5 in ms
+
+    def test_parse_ffmpeg_progress_time_comma_decimal(self):
+        """Test parsing time from ffmpeg output with comma decimal."""
+        pytest.importorskip("rich")
+        from mkv2cast.pipeline import _parse_ffmpeg_progress
+
+        line = "frame=  100 fps=25 time=00:01:30,50 speed=2.5x"
+        pct, speed, out_ms = _parse_ffmpeg_progress(line, 180000)
+
+        assert pct == 50
+        assert speed == "2.5x"
+        assert out_ms == 90500
 
     def test_parse_ffmpeg_progress_no_duration(self):
         """Test parsing without duration."""

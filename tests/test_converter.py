@@ -44,6 +44,17 @@ class TestProgressParsing:
         assert result["progress_percent"] == 0.0
         assert result["fps"] == 0.0
 
+    def test_parse_ffmpeg_progress_time_comma_decimal(self):
+        """Test parsing time when ffmpeg uses comma as decimal separator."""
+        from mkv2cast.converter import parse_ffmpeg_progress
+
+        line = "frame=  100 fps=25 time=00:01:30,50 speed=2.5x"
+        result = parse_ffmpeg_progress(line, 180000)  # 3 min duration
+
+        assert result["current_time_ms"] == 90500
+        assert result["speed"] == "2.5x"
+        assert abs(result["progress_percent"] - 50.0) < 0.5
+
     def test_calculate_eta(self):
         """Test ETA calculation."""
         import time
