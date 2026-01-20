@@ -267,10 +267,15 @@ endif
 	fi
 	@echo ""
 	@echo "→ Pushing to origin..."
-	@if [ "$(FORCE)" = "1" ]; then \
-		git push origin HEAD --tags --force; \
+	@CURRENT_BRANCH=$$(git branch --show-current 2>/dev/null || git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main"); \
+	if [ -z "$$CURRENT_BRANCH" ]; then \
+		CURRENT_BRANCH="main"; \
+	fi; \
+	echo "  Pushing branch: $$CURRENT_BRANCH"; \
+	if [ "$(FORCE)" = "1" ]; then \
+		git push origin $$CURRENT_BRANCH --tags --force; \
 	else \
-		git push origin HEAD --tags; \
+		git push origin $$CURRENT_BRANCH --tags; \
 	fi
 	@echo ""
 	@echo "══════════════════════════════════════════════════════"
